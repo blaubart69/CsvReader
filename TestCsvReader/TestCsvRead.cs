@@ -12,110 +12,109 @@ namespace TestCsvReader
         [TestMethod]
         public void one_lonely_field()
         {
-            var data = RunCsvReader(new StringReader("a"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(1, data[0].Length);
-            Assert.AreEqual("a", data[0][0]);
+            var actual = RunCsvReader(new StringReader("a"));
+            var expected = new string[][] { new string[] { "a" } };
+            CompareGrids(expected, actual);
         }
         [TestMethod]
         public void one_lonely_field_crlf()
         {
-            var data = RunCsvReader(new StringReader("a\r\n"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(1, data[0].Length);
-            Assert.AreEqual("a", data[0][0]);
+            var actual = RunCsvReader(new StringReader("a\r\n"));
+            var expected = new string[][] { new string[] { "a" } };
+            CompareGrids(expected, actual);
         }
         [TestMethod]
         public void one_lonely_field_lf()
         {
-            var data = RunCsvReader(new StringReader("a\n"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(1, data[0].Length);
-            Assert.AreEqual("a", data[0][0]);
+            var actual = RunCsvReader(new StringReader("a\n"));
+            var expected = new string[][] { new string[] { "a" } };
+            CompareGrids(expected, actual);
         }
         [TestMethod]
         public void Line1_Field2()
         {
-            var data = RunCsvReader(new StringReader("a,b"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("a", data[0][0]);
-            Assert.AreEqual("b", data[0][1]);
+            var actual = RunCsvReader(new StringReader("a,b"));
+            var expected = new string[][] { new string[] { "a", "b" } };
+            CompareGrids(expected, actual);
         }
         [TestMethod]
         public void Line1_Field2_ending_with_CrLf()
         {
-            var data = RunCsvReader(new StringReader("a,b\r\n"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("a", data[0][0]);
-            Assert.AreEqual("b", data[0][1]);
+            var actual = RunCsvReader(new StringReader("a,b\r\n"));
+            var expected = new string[][] { new string[] { "a", "b" } };
+            CompareGrids(expected, actual);
         }
         [TestMethod]
         public void Line2_Field2()
         {
-            var data = RunCsvReader(new StringReader("a,b\r\nc,d"));
-            Assert.AreEqual(2, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual(2, data[1].Length);
-            Assert.AreEqual("a", data[0][0]);
-            Assert.AreEqual("b", data[0][1]);
-            Assert.AreEqual("c", data[1][0]);
-            Assert.AreEqual("d", data[1][1]);
+            var actual = RunCsvReader(new StringReader("a,b\r\nc,d"));
+            var expected = new string[][] { 
+                new string[] { "a", "b" },
+                new string[] { "c", "d" } };
+            CompareGrids(expected, actual);
         }
         [TestMethod]
         public void Line1_Field2_quoted()
         {
-            var data = RunCsvReader(new StringReader("\"a\",\"b\""));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("a", data[0][0]);
-            Assert.AreEqual("b", data[0][1]);
+            CompareGrids(new string[][] { new string[] { "a", "b" } }, RunCsvReader(new StringReader("\"a\",\"b\"")));
         }
         [TestMethod]
         public void twoEmptyQuotedFields()
         {
-            var data = RunCsvReader(new StringReader("\"\",\"\""));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("", data[0][0]);
-            Assert.AreEqual("", data[0][1]);
+            CompareGrids(new string[][] { new string[] { "", "" } } , RunCsvReader(new StringReader("\"\",\"\"")));
         }
         [TestMethod]
         public void twoEmptyQuotedFields_CrLf_ending()
         {
-            var data = RunCsvReader(new StringReader("\"\",\"\"\r\n"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("", data[0][0]);
-            Assert.AreEqual("", data[0][1]);
+            CompareGrids(new string[][] { new string[] { "", "" } }, RunCsvReader(new StringReader("\"\",\"\"\r\n")));
         }
         [TestMethod]
         public void twoQuotedDoubleQuotes()
         {
-            var data = RunCsvReader(new StringReader("\"\"\"\",\"\"\"\""));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("\"", data[0][0]);
-            Assert.AreEqual("\"", data[0][1]);
+            CompareGrids(new string[][] { new string[] { "\"", "\"" } }, RunCsvReader(new StringReader("\"\"\"\",\"\"\"\"")));
         }
         [TestMethod]
         public void twoQuotedDoubleQuotes_literal()
         {
-            var data = RunCsvReader(new StringReader(@""""""""","""""""""));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("\"", data[0][0]);
-            Assert.AreEqual("\"", data[0][1]);
+            CompareGrids(new string[][] { new string[] { "\"", "\"" } }, RunCsvReader(new StringReader(@""""""""",""""""""")));
         }
         [TestMethod]
         public void twoQuotedDoubleQuotes_crlf()
         {
-            var data = RunCsvReader(new StringReader("\"\"\"\",\"\"\"\"\r\n"));
-            Assert.AreEqual(1, data.Count);
-            Assert.AreEqual(2, data[0].Length);
-            Assert.AreEqual("\"", data[0][0]);
-            Assert.AreEqual("\"", data[0][1]);
+            CompareGrids(new string[][] { new string[] { "\"", "\"" } }, RunCsvReader(new StringReader("\"\"\"\",\"\"\"\"\r\n")));
+        }
+        [TestMethod]
+        public void emptyFieldInbetween()
+        {
+            CompareGrids(new string[][] { new string[] { "a", "", "c" } }, RunCsvReader(new StringReader("a,,c")));
+        }
+        [TestMethod]
+        public void emptyQuotedFieldInbetween()
+        {
+            CompareGrids(new string[][] { new string[] { "a", "", "c" } }, RunCsvReader(new StringReader("a,\"\",c")));
+        }
+        [TestMethod]
+        public void TwoEmptyFields()
+        {
+            CompareGrids(new string[][] { new string[] { "", "" } }, RunCsvReader(new StringReader(",")));
+        }
+        [TestMethod]
+        public void OneEmptyField()
+        {
+            CompareGrids(new string[][] { }, RunCsvReader(new StringReader("")));
+        }
+        [TestMethod]
+        public void TwoEmptyFieldsInTwoLines()
+        {
+            CompareGrids(new string[][] { 
+                new string[] { "", "" }, 
+                new string[] { "", "" } }
+            , RunCsvReader(new StringReader(",\r\n,")));
+        }
+        [TestMethod]
+        public void QuoteInTheMiddle()
+        {
+            CompareGrids(new string[][] { new string[] { "a", "b\"b", "c" } }, RunCsvReader(new StringReader("a,b\"b,c")));
         }
         private List<string[]> RunCsvReader(TextReader r)
         {
@@ -127,6 +126,18 @@ namespace TestCsvReader
             }
 
             return data;
+        }
+        private void CompareGrids(string[][] expected, List<string[]> actual)
+        {
+            Assert.AreEqual(expected.Length, actual.Count, "different row count");
+
+            for ( int i=0; i < expected.Length; ++i)
+            {
+                for ( int j=0; j < expected[i].Length; ++j)
+                {
+                    Assert.AreEqual(expected[i][j], actual[i][j]);
+                }
+            }
         }
     }
 }
