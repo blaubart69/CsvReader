@@ -114,7 +114,13 @@ namespace TestCsvReader
         [TestMethod]
         public void QuoteInTheMiddle()
         {
-            CompareGrids(new string[][] { new string[] { "a", "b\"b", "c" } }, RunCsvReader(new StringReader("a,b\"b,c")));
+            CompareGrids(new string[][] { new string[] { "a", "bb", "c" } }, RunCsvReader(new StringReader("a,b\"b,c")));
+        }
+        [TestMethod]
+        public void QuotedWord()
+        {
+            CompareGrids(new string[][] { new string[] { "Bernhard \"Florian\" Spindler" } }, 
+                RunCsvReader(new StringReader("\"Bernhard \"\"Florian\"\" Spindler\"")));
         }
         private List<string[]> RunCsvReader(TextReader r)
         {
