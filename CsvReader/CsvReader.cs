@@ -87,7 +87,7 @@ namespace Spi
                 {
                     if (inQuotes)
                     {
-                        if ( lastChar == DOUBLE_QUOTE )
+                        if (lastChar == DOUBLE_QUOTE)
                         {
                             inQuotes = false;
                         }
@@ -96,10 +96,13 @@ namespace Spi
                             sb.Append(c);
                         }
                     }
-                    if ( !inQuotes && c == '\n')
+                    else
                     {
-                        fields.Add(sb.ToString());
-                        break;
+                        if (c == '\n')
+                        {
+                            fields.Add(sb.ToString());
+                            break;
+                        }
                     }
                 }
                 // -------------------------------------------------------------------------

@@ -122,6 +122,19 @@ namespace TestCsvReader
             CompareGrids(new string[][] { new string[] { "Bernhard \"Florian\" Spindler" } }, 
                 RunCsvReader(new StringReader("\"Bernhard \"\"Florian\"\" Spindler\"")));
         }
+        [TestMethod]
+        public void QuotedFieldDelimiter()
+        {
+            CompareGrids(new string[][] { new string[] { "Bernhard,Florian,Spindler" } },
+                RunCsvReader(new StringReader("\"Bernhard,Florian,Spindler\"")));
+        }
+        [TestMethod]
+        public void QuotedFieldDelimiterTwoFields()
+        {
+            CompareGrids(new string[][] { new string[] { "Bernhard,Florian,Spindler", "Präßler" } },
+                RunCsvReader(new StringReader("\"Bernhard,Florian,Spindler\",Präßler")));
+        }
+        #region HELPER
         private List<string[]> RunCsvReader(TextReader r)
         {
             List<string[]> data = new List<string[]>();
@@ -145,5 +158,6 @@ namespace TestCsvReader
                 }
             }
         }
+        #endregion
     }
 }
