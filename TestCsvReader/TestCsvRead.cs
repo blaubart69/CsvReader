@@ -140,6 +140,12 @@ namespace TestCsvReader
             CompareGrids(new string[][] { new string[] { "Bernhard,Florian,Spindler", "Präßler" } },
                 RunCsvReader(new StringReader("\"Bernhard,Florian,Spindler\",Präßler")));
         }
+        [TestMethod]
+        public void OnlyOneQuoteBetweenQuotes()
+        {
+            CompareGrids(new string[][] { new string[] { "" } },
+                RunCsvReader(new StringReader("\"\"\"")));
+        }
         #region HELPER
         private List<string[]> RunCsvReader(TextReader r)
         {
