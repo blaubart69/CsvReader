@@ -123,6 +123,12 @@ namespace TestCsvReader
                 RunCsvReader(new StringReader("\"Bernhard \"\"Florian\"\" Spindler\"")));
         }
         [TestMethod]
+        public void QuotedDelimiter()
+        {
+            CompareGrids(new string[][] { new string[] { "Bernhard, \"Florian\", Spindler" } },
+                RunCsvReader(new StringReader("\"Bernhard, \"\"Florian\"\", Spindler\"")));
+        }
+        [TestMethod]
         public void QuotedFieldDelimiter()
         {
             CompareGrids(new string[][] { new string[] { "Bernhard,Florian,Spindler" } },
