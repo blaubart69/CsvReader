@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Benchmark")]
+[assembly: AssemblyTitle("RunCsvReader")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Benchmark")]
+[assembly: AssemblyProduct("RunCsvReader")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("0a19a01f-00c2-44e4-806c-224f95d27b0e")]
+[assembly: Guid("a7cd6444-8c61-43a8-b4fb-3d653742f074")]
 
 // Version information for an assembly consists of the following four values:
 //

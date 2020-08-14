@@ -2,21 +2,19 @@
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Running;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Benchi
+namespace BenchCsvReaders
 {
+    [MemoryDiagnoser]
     public class Benches
     {
         [Benchmark]
         public void Spindi()
         {
             Consumer Konsum = new Consumer();
-            using (TextReader rdr = new StreamReader(@"c:\temp\allc.tsv", detectEncodingFromByteOrderMarks: true))
+            using (var bs = new BufferedStream(new FileStream(@"c:\temp\allc.tsv", FileMode.Open, FileAccess.Read)))
+            using (TextReader rdr = new StreamReader(bs, detectEncodingFromByteOrderMarks: true))
             {
                 Spi.CsvReader.Run(rdr, '\t',
                     OnRow: (string[] fields) =>
