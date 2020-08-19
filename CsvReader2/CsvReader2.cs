@@ -25,7 +25,7 @@ namespace Spi
         int     _bufLen;
         int     _recordStartIdx;
         bool    _eof;
-        int     _fieldCount;
+        int     _fieldIdx_lastElement;
 
         public CsvReader2(TextReader reader, char fieldDelimiter, int buffersize = 4096)
         {
@@ -42,7 +42,7 @@ namespace Spi
 
             int readIdxRelative         = 0;
             int fieldIdxStartRelative   = 0;
-               _fieldCount              = 0;
+               _fieldIdx_lastElement    = 0;
 
             char? lastChar = _fieldDelimiter;
             bool setLastCharToNull;
@@ -200,16 +200,16 @@ namespace Spi
 
         private void AddField(int fieldStartIdx, int fieldEndIdx, int QuoteCount)
         {
-            ++_fieldCount;
-            if ( _fieldCount > _fields.Length)
+            if ( _fieldIdx_lastElement == _fields.Length )
             {
                 Array.Resize(ref _fields, _fields.Length * 4);
             }
 
-            int idx = _fieldCount - 1;
-            _fields[idx].startIdx   = fieldStartIdx;
-            _fields[idx].endIdx     = fieldEndIdx;
-            _fields[idx].QuoteCount = QuoteCount;
+            _fields[_fieldIdx_lastElement].startIdx   = fieldStartIdx;
+            _fields[_fieldIdx_lastElement].endIdx     = fieldEndIdx;
+            _fields[_fieldIdx_lastElement].QuoteCount = QuoteCount;
+
+            ++_fieldIdx_lastElement;
         }
     }
 }
