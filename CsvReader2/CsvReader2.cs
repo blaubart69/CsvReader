@@ -7,7 +7,7 @@ namespace Spi
     struct Field
     {
         public int startIdx;
-        public int endIdx;
+        public int len;
         public int QuoteCount;
     }
     public class CsvReader2
@@ -15,9 +15,9 @@ namespace Spi
         readonly TextReader _reader;
         readonly char       _fieldDelimiter;
 
-        readonly int BUFSIZE;
-        const int INITIAL_FIELDS_SIZE = 8;
-        const char DOUBLE_QUOTE = '\"';
+        readonly int  BUFSIZE;
+        const    int  INITIAL_FIELDS_SIZE = 8;
+        const    char DOUBLE_QUOTE = '\"';
         
         Field[] _fields;
 
@@ -40,26 +40,25 @@ namespace Spi
                 Init();
             }
 
-            int readIdxRelative         = 0;
-            int fieldIdxStartRelative   = 0;
-               _fieldIdx_lastElement    = 0;
-
+            int   readIdx         = 0;
+            int   fieldIdxStart   = 0;
             char? lastChar = _fieldDelimiter;
-            bool setLastCharToNull;
+            bool  setLastCharToNull;
+            bool  inQuotes = false;
+            int   quoteCount = 0;
 
-            bool inQuotes = false;
-            int quoteCount = 0;
+            _fieldIdx_lastElement = 0;
 
             for (;;)
             {
                 setLastCharToNull = false;
-                int readIdxAbsolut = _recordStartIdx + readIdxRelative;
+                int readIdxAbsolut = _recordStartIdx + readIdx;
                 if (readIdxAbsolut >= _bufLen)
                 {
                     if (_eof || ShiftLeftAndFillBuffer() == 0)
                     {
                         // gaunz aus
-                        AddField(fieldIdxStartRelative, readIdxRelative, QuoteCount: 0);
+                        AddField(fieldIdxStart, readIdx, QuoteCount: 0);
                         break;
                     }
                 }
@@ -68,15 +67,15 @@ namespace Spi
 
                 if      ( c == _fieldDelimiter )
                 {
-                    HandleFieldDelimiter(readIdxRelative, ref fieldIdxStartRelative, lastChar, ref inQuotes);
+                    HandleFieldDelimiter(readIdx, lastChar, ref fieldIdxStart, ref inQuotes);
                 }
                 else if ( c == DOUBLE_QUOTE )
                 {
-                    HandleDoubleQuote(lastChar, ref setLastCharToNull, ref inQuotes, ref quoteCount, ref fieldIdxStartRelative);
+                    HandleDoubleQuote(lastChar, ref setLastCharToNull, ref inQuotes, ref quoteCount, ref fieldIdxStart);
                 }
                 else if ( c == '\n' || c == '\r')
                 {
-                    bool EndOfRecord = HandleEndOfRecord(ref inQuotes, c, lastChar, quoteCount, fieldIdxStartRelative, readIdxRelative);
+                    bool EndOfRecord = HandleEndOfRecord(c, lastChar, quoteCount, fieldIdxStart, readIdx, ref inQuotes);
                     if ( EndOfRecord )
                     {
                         break;
@@ -84,25 +83,25 @@ namespace Spi
                 }
 
                 lastChar = setLastCharToNull ? (char?)null : c;
-                ++readIdxRelative;
+                ++readIdx;
             }
         }
 
-        private bool HandleEndOfRecord(ref bool inQuotes, char currChar, char? lastChar, int quoteCount, int fieldIdxStartRelative, int readIdxRelative)
+        private bool HandleEndOfRecord(char currChar, char? lastChar, int quoteCount, int fieldIdxStart, int readIdx, ref bool inQuotes)
         {
             if (inQuotes)
             {
                 if (lastChar == DOUBLE_QUOTE)
                 {
                     inQuotes = false;
-                    AddField(fieldIdxStartRelative, readIdxRelative - 2, quoteCount);
+                    AddField(startIdx: fieldIdxStart, len: readIdx - 2, quoteCount);
                 }
             }
             else
             {
                 if (lastChar != '\n' && lastChar != '\r')
                 {
-                    AddField(fieldIdxStartRelative, readIdxRelative - 1, quoteCount);
+                    AddField(startIdx: fieldIdxStart, len: readIdx - 1, quoteCount);
                 }
                 if (currChar == '\n')
                 {
@@ -113,13 +112,13 @@ namespace Spi
             return false;
         }
 
-        private void HandleDoubleQuote(char? lastChar, ref bool setLastCharToNull, ref bool inQuotes, ref int quoteCount, ref int fieldIdxStartRelative)
+        private void HandleDoubleQuote(char? lastChar, ref bool setLastCharToNull, ref bool inQuotes, ref int quoteCount, ref int fieldIdxStart)
         {
             if (lastChar == _fieldDelimiter)
             {
                 inQuotes = true;
                 setLastCharToNull = true;
-                ++fieldIdxStartRelative;
+                ++fieldIdxStart;
             }
             else if (lastChar == DOUBLE_QUOTE)
             {
@@ -127,15 +126,15 @@ namespace Spi
             }
         }
 
-        private void HandleFieldDelimiter(int readIdxRelative, ref int fieldIdxStartRelative, char? lastChar, ref bool inQuotes)
+        private void HandleFieldDelimiter(int readIdx, char? lastChar, ref int fieldIdxStart, ref bool inQuotes)
         {
             if (inQuotes)
             {
                 if (lastChar == DOUBLE_QUOTE)
                 {
                     inQuotes = false;
-                    AddField(fieldIdxStartRelative, readIdxRelative - 2, 0);
-                    fieldIdxStartRelative = readIdxRelative + 1;
+                    AddField(fieldIdxStart, readIdx - 2, 0);
+                    fieldIdxStart = readIdx + 1;
                 }
             }
             else
@@ -146,8 +145,11 @@ namespace Spi
                 }
                 else
                 {
-                    AddField(fieldIdxStartRelative, readIdxRelative - 1, 0);
-                    fieldIdxStartRelative = readIdxRelative + 1;
+                    AddField( 
+                        startIdx:   fieldIdxStart, 
+                        len:        (readIdx - fieldIdxStart) - 1, // -1 ... cut of the field delimiter
+                        QuoteCount: 0);
+                    fieldIdxStart = readIdx + 1;
                 }
             }
         }
@@ -163,11 +165,11 @@ namespace Spi
             //
             int charsToMoveDown = _bufLen - _recordStartIdx;
             Array.Copy(
-                sourceArray: _buf,
-                sourceIndex: _recordStartIdx,
-                destinationArray: _buf,
-                destinationIndex: 0,
-                length: charsToMoveDown);
+                sourceArray:        _buf,
+                sourceIndex:        _recordStartIdx,
+                destinationArray:   _buf,
+                destinationIndex:   0,
+                length:             charsToMoveDown);
             //
             // fill the rest of the array
             //
@@ -198,15 +200,15 @@ namespace Spi
             _fields = new Field[INITIAL_FIELDS_SIZE];
         }
 
-        private void AddField(int fieldStartIdx, int fieldEndIdx, int QuoteCount)
+        private void AddField(int startIdx, int len, int QuoteCount)
         {
             if ( _fieldIdx_lastElement == _fields.Length )
             {
                 Array.Resize(ref _fields, _fields.Length * 4);
             }
 
-            _fields[_fieldIdx_lastElement].startIdx   = fieldStartIdx;
-            _fields[_fieldIdx_lastElement].endIdx     = fieldEndIdx;
+            _fields[_fieldIdx_lastElement].startIdx   = startIdx;
+            _fields[_fieldIdx_lastElement].len        = len;
             _fields[_fieldIdx_lastElement].QuoteCount = QuoteCount;
 
             ++_fieldIdx_lastElement;
