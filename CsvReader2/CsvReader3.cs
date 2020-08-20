@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace Spi
@@ -23,9 +24,9 @@ namespace Spi
 
         char[] _buf;
         int _bufLen;
-        int _recordStartIdx;
-        bool _eof;
-        int _fieldIdx_lastElement;
+        int _recordStartIdx_Read;
+        int _recordStartIdx_Get;
+        int _fieldIdx_toWrite;
 
         public CsvReader3(TextReader reader, char fieldDelimiter, int buffersize = 4096)
         {
@@ -37,36 +38,53 @@ namespace Spi
         {
             if (_buf == null)
             {
-                Init();
+                _buf = new char[BUFSIZE];
+                _bufLen = _reader.ReadBlock(_buf);
+                _recordStartIdx_Read = 0;
+                _fields = new Field[INITIAL_FIELDS_SIZE];
             }
 
-            int readIdx = 0;
-            int fieldIdxStart = 0;
+            _fieldIdx_toWrite = 0;
+
+            if (_recordStartIdx_Read >= _bufLen)
+            {
+                return false;
+            }
+
+            _recordStartIdx_Get = _recordStartIdx_Read;
+
+            int readIdx = ReadOneRecord();
+            _recordStartIdx_Read += readIdx;
+
+            return true;
+        }
+        private int ReadOneRecord()
+        {
+            int   readIdx = 0;
+            int   fieldIdxStart = 0;
             char? lastChar = FieldDelimiter;
-            bool setLastChar;
-            bool inQuotes = false;
-            int quoteCount = 0;
+            bool  setLastChar;
+            bool  inQuotes = false;
+            int   quoteCount = 0;
+            bool  recordFinished = false;
 
-            _fieldIdx_lastElement = 0;
-
-            for (;;)
+            while (!recordFinished)
             {
                 setLastChar = true;
-                int readIdxAbsolut = _recordStartIdx + readIdx;
+                int readIdxAbsolut = _recordStartIdx_Read + readIdx;
 
                 if (readIdxAbsolut >= _bufLen)
                 {
-                    if (_eof || ShiftLeftAndFillBuffer() == 0)
+                    recordFinished = HandleReadIdxBehindBuffer(readIdx, fieldIdxStart, quoteCount, recordFinished, lastChar, inQuotes);
+                    if (recordFinished)
                     {
-                        // gaunz aus
-                        AddField(fieldIdxStart, readIdx, QuoteCount: 0);
-                        break;
+                        goto dirty;
                     }
                 }
 
                 char c = _buf[readIdxAbsolut];
 
-                if (inQuotes)
+                if      (inQuotes)
                 {
                     if (lastChar == DOUBLE_QUOTE)
                     {
@@ -77,112 +95,170 @@ namespace Spi
                         }
                         else if (c == FieldDelimiter)
                         {
-                            AddField(startIdx: fieldIdxStart, len: (readIdx - fieldIdxStart) - 2, quoteCount);
+                            AddField(startIdx: fieldIdxStart, len: (readIdx - fieldIdxStart) - 1, quoteCount);
                             quoteCount = 0;
                             fieldIdxStart = readIdx + 1;
                             inQuotes = false;
                         }
                     }
                 }
-                else
+                else if (lastChar == FieldDelimiter && c == DOUBLE_QUOTE)    //  begin of quoted field
                 {
-                    if (lastChar == FieldDelimiter && c == DOUBLE_QUOTE)    //  begin of quoted field
+                    inQuotes = true;
+                    setLastChar = false;
+                    ++fieldIdxStart;
+                }
+                else if (c == FieldDelimiter)
+                {
+                    if (lastChar == DOUBLE_QUOTE)
                     {
-                        inQuotes = true;
-                        setLastChar = false;
-                        ++fieldIdxStart;
+                        // field ended with quote but not started with quote ==> error
                     }
-                    else if (c == FieldDelimiter)
+                    else
                     {
-                        if (lastChar == DOUBLE_QUOTE)
-                        {
-                            // field ended with quote but not started with quote ==> error
-                        }
-                        else
-                        {
-                            // unquoted field ended
-                            AddField(
-                                startIdx:   fieldIdxStart,
-                                len:        (readIdx - fieldIdxStart) - 1, // -1 ... cut off the field delimiter
-                                QuoteCount: 0);
-                            fieldIdxStart = readIdx + 1;
-                        }
+                        Trace.Assert(quoteCount == 0, "unquoted field ended. quote count should be 0. but is not.");
+                        // unquoted field ended
+                        AddField(
+                            startIdx:   fieldIdxStart,
+                            len:        readIdx - fieldIdxStart,
+                            QuoteCount: 0);
+                        fieldIdxStart = readIdx + 1;
                     }
-                    else if (c == '\n' || c == '\r')
+                }
+                else if (c == '\n' || c == '\r')
+                {
+                    if (lastChar != '\n' && lastChar != '\r')
                     {
-                        if (lastChar != '\n' && lastChar != '\r')
-                        {
-                            AddField(startIdx: fieldIdxStart, len: readIdx - 1, quoteCount);
-                        }
-                        if (c == '\n')
-                        {
-                            break;
-                        }
+                        AddField(startIdx: fieldIdxStart, len: readIdx - fieldIdxStart, quoteCount);
+                    }
+                    if (c == '\n')
+                    {
+                        recordFinished = true;
                     }
                 }
 
                 lastChar = setLastChar ? c : (char?)null;
+            dirty:
                 ++readIdx;
             }
+
+            return readIdx;
         }
-        private int ShiftLeftAndFillBuffer()
+        private bool HandleReadIdxBehindBuffer(int readIdx, int fieldIdxStart, int quoteCount, bool recordFinished, char? lastChar, bool inQuotes)
         {
-            if (_recordStartIdx == 0)
+            if (_bufLen < BUFSIZE)
             {
-                throw new OutOfMemoryException("buffer exhausted to handle this CSV record");
+                // EOF reached since the buffer is not full
+                // last record
+                if (inQuotes)
+                {
+                    if (lastChar == DOUBLE_QUOTE)
+                    {
+                        AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 1, quoteCount);
+                    }
+                    else
+                    {
+                        // error: missing 2nd end quote
+                    }
+                }
+                else
+                {
+                    AddField(fieldIdxStart, readIdx - fieldIdxStart, quoteCount);
+                }
+                
+                recordFinished = true;
             }
+            else
+            {
+                if (_recordStartIdx_Read == 0)
+                {
+                    throw new OutOfMemoryException("buffer exhausted to handle this CSV record");
+                }
+
+                int numberCharsRead = ShiftBufferAndRefill();
+                if (numberCharsRead == 0)
+                {
+                    AddField(fieldIdxStart, readIdx, quoteCount);
+                    recordFinished = true;
+                }
+
+                _recordStartIdx_Read = 0;
+                _recordStartIdx_Get = 0;
+            }
+
+            return recordFinished;
+        }
+        private int ShiftBufferAndRefill()
+        {
             //
             // move the actual record down the array
             //
-            int charsToMoveDown = _bufLen - _recordStartIdx;
-            Array.Copy(
-                sourceArray: _buf,
-                sourceIndex: _recordStartIdx,
-                destinationArray: _buf,
-                destinationIndex: 0,
-                length: charsToMoveDown);
+            int charsToMoveDown = _bufLen - _recordStartIdx_Read;
+            if (charsToMoveDown > 0)
+            {
+                Array.Copy(
+                    sourceArray: _buf,
+                    sourceIndex: _recordStartIdx_Read,
+                    destinationArray: _buf,
+                    destinationIndex: 0,
+                    length: charsToMoveDown);
+            }
             //
             // fill the rest of the array
             //
-            int charsToReadFromReader = BUFSIZE - charsToMoveDown;
-            int numberCharRead = _reader.ReadBlock(_buf, charsToMoveDown, charsToReadFromReader);
+            int charsToRead      = BUFSIZE - charsToMoveDown;
+            int numberCharsRead  = _reader.ReadBlock(_buf, charsToMoveDown, charsToRead);
 
-            if (numberCharRead < charsToReadFromReader)
-            {
-                _eof = true;
-            }
+            _bufLen = charsToMoveDown + numberCharsRead;
 
-            _recordStartIdx = 0;
-            _bufLen = charsToMoveDown + numberCharRead;
-
-            return numberCharRead;
+            return numberCharsRead;
         }
-        private void Init()
-        {
-            _buf = new char[BUFSIZE];
-            _bufLen = _reader.ReadBlock(_buf);
-
-            if (_bufLen < BUFSIZE)
-            {
-                _eof = true;
-            }
-
-            _recordStartIdx = 0;
-            _fields = new Field[INITIAL_FIELDS_SIZE];
-        }
-
         private void AddField(int startIdx, int len, int QuoteCount)
         {
-            if (_fieldIdx_lastElement == _fields.Length)
+            if (_fieldIdx_toWrite == _fields.Length)
             {
                 Array.Resize(ref _fields, _fields.Length * 4);
             }
 
-            _fields[_fieldIdx_lastElement].startIdx = startIdx;
-            _fields[_fieldIdx_lastElement].len = len;
-            _fields[_fieldIdx_lastElement].QuoteCount = QuoteCount;
+            _fields[_fieldIdx_toWrite].startIdx = startIdx;
+            _fields[_fieldIdx_toWrite].len = len;
+            _fields[_fieldIdx_toWrite].QuoteCount = QuoteCount;
 
-            ++_fieldIdx_lastElement;
+            ++_fieldIdx_toWrite;
         }
+        #region FIELD_ACCESS
+        public ReadOnlySpan<char> this[int idx]
+        {
+            get
+            {
+                if (idx <= _fieldIdx_toWrite)
+                {
+                    Field f = _fields[idx];
+
+                    var fieldValue =
+                        _buf.AsSpan(start: _recordStartIdx_Get + f.startIdx,
+                                    length: f.len);
+
+                    if ( f.QuoteCount == 0 )
+                    {
+                        return fieldValue;
+                    }
+                    else
+                    {
+                        return fieldValue.ToString().Replace("\"\"", "\"").AsSpan();
+                    }
+                }
+
+                return null;
+            }
+        }
+        public int FieldCount
+        {
+            get
+            {
+                return _fieldIdx_toWrite;
+            }
+        }
+        #endregion
     }
 }

@@ -33,6 +33,7 @@ namespace Spi
             _fieldDelimiter = fieldDelimiter;
             BUFSIZE = buffersize;
         }
+        /*
         public bool Read()
         {
             if (_buf == null)
@@ -86,6 +87,7 @@ namespace Spi
                 ++readIdx;
             }
         }
+        */
 
         private bool HandleEndOfRecord(char currChar, char? lastChar, int quoteCount, int fieldIdxStart, int readIdx, ref bool inQuotes)
         {
