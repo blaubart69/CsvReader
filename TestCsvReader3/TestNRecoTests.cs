@@ -117,12 +117,15 @@ namespace NReco.Csv.Tests {
 		[Fact]
 		public void LargeCsvTest() {
 			var memStream = new MemoryStream();
-			var testLines = 5_000_000;  // note: in Debug mode processing takes much more time in comparing to Release!
+			int UpperLimit = 50_000_000;  // note: in Debug mode processing takes much more time in comparing to Release!
+
+			int records_written = 0;
 			using (var streamWr = new StreamWriter(memStream, Encoding.UTF8, 4096, leaveOpen: true)) {
 				var bVals = new string[] { "b1", "b2", "b3" };
-				for (int i=0; i< testLines; i+=10) {
+				for (int i=0; i< UpperLimit; i+=100) {
 					//streamWr.WriteLine(String.Format("{0},{1}, \"Quoted\", just a value", i, bVals[i%bVals.Length] ));
 					  streamWr.WriteLine(String.Format("{0},{1},\"Quoted\", just a value", i, bVals[i % bVals.Length]));
+					++records_written;
 				}
 			}
 			memStream.Position = 0;
@@ -132,20 +135,20 @@ namespace NReco.Csv.Tests {
 			sw.Start();
 
 			var csvRdr = new Spi.CsvReader3(new StreamReader(memStream), buffersize: 64);
-			var readLines = 0;
+			int record_read = 0;
 			while (csvRdr.Read()) {
 				if (csvRdr[1][0] != 'b')
 				{
 					throw new Exception("Wrong read!");
 				}
 				output.WriteLine($"[{csvRdr[0].ToString()}][{csvRdr[1].ToString()}][{csvRdr[2].ToString()}][{csvRdr[3].ToString()}]");
-				++readLines;
+				++record_read;
 			}
 
 			sw.Stop();
 			output.WriteLine("Time: {0}ms", sw.ElapsedMilliseconds);
 
-			Assert.Equal(testLines, readLines);
+			Assert.Equal(records_written, record_read);
 		}
 		/*
 		[Fact]
