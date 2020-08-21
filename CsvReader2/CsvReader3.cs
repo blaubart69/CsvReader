@@ -53,8 +53,8 @@ namespace Spi
 
             _recordStartIdx_Get = _recordStartIdx_Read;
 
-            int readIdx = ReadOneRecord();
-            _recordStartIdx_Read += readIdx;
+            int recordLength = ReadOneRecord();
+            _recordStartIdx_Read += recordLength;
 
             return true;
         }
@@ -78,71 +78,117 @@ namespace Spi
                     recordFinished = HandleReadIdxBehindBuffer(readIdx, fieldIdxStart, quoteCount, recordFinished, lastChar, inQuotes);
                     if (recordFinished)
                     {
-                        goto dirty;
+                        goto dirty; // skip reading character
                     }
                 }
 
                 char c = _buf[readIdxAbsolut];
 
-                if      (inQuotes)
+                if (c == '\n' || c == '\r')
                 {
-                    if (lastChar == DOUBLE_QUOTE)
-                    {
-                        if (c == DOUBLE_QUOTE)
-                        {
-                            ++quoteCount;
-                            setLastChar = false;
-                        }
-                        else if (c == FieldDelimiter)
-                        {
-                            AddField(startIdx: fieldIdxStart, len: (readIdx - fieldIdxStart) - 1, quoteCount);
-                            quoteCount = 0;
-                            fieldIdxStart = readIdx + 1;
-                            inQuotes = false;
-                        }
-                    }
-                }
-                else if (lastChar == FieldDelimiter && c == DOUBLE_QUOTE)    //  begin of quoted field
-                {
-                    inQuotes = true;
-                    setLastChar = false;
-                    ++fieldIdxStart;
+                    recordFinished = HandleEndOfRecord(c, lastChar, readIdx, fieldIdxStart, ref inQuotes, quoteCount, recordFinished);
                 }
                 else if (c == FieldDelimiter)
                 {
-                    if (lastChar == DOUBLE_QUOTE)
-                    {
-                        // field ended with quote but not started with quote ==> error
-                    }
-                    else
-                    {
-                        Trace.Assert(quoteCount == 0, "unquoted field ended. quote count should be 0. but is not.");
-                        // unquoted field ended
-                        AddField(
-                            startIdx:   fieldIdxStart,
-                            len:        readIdx - fieldIdxStart,
-                            QuoteCount: 0);
-                        fieldIdxStart = readIdx + 1;
-                    }
+                    HandleFieldDelimiter(readIdx, lastChar, ref fieldIdxStart, ref inQuotes, ref quoteCount);
                 }
-                else if (c == '\n' || c == '\r')
+                else if (c == DOUBLE_QUOTE)
                 {
-                    if (lastChar != '\n' && lastChar != '\r')
-                    {
-                        AddField(startIdx: fieldIdxStart, len: readIdx - fieldIdxStart, quoteCount);
-                    }
-                    if (c == '\n')
-                    {
-                        recordFinished = true;
-                    }
+                    HandleDoubleQuote(lastChar, ref fieldIdxStart, ref setLastChar, ref inQuotes, ref quoteCount);
                 }
 
                 lastChar = setLastChar ? c : (char?)null;
+
             dirty:
                 ++readIdx;
             }
 
             return readIdx;
+        }
+
+        private bool HandleEndOfRecord(char c, char? lastChar, int readIdx, int fieldIdxStart, ref bool inQuotes, int quoteCount, bool recordFinished)
+        {
+            if (inQuotes)
+            {
+                if ( lastChar == DOUBLE_QUOTE )
+                {
+                    // quoted field ended at record end
+                    inQuotes = false;
+                    AddField(startIdx:  fieldIdxStart,
+                             len:       (readIdx - fieldIdxStart) - 1,
+                                        quoteCount);
+                }
+            }
+            else
+            {
+                if (lastChar != '\n' && lastChar != '\r')
+                {
+                    AddField(   startIdx:   fieldIdxStart, 
+                                len:        readIdx - fieldIdxStart, 
+                                            quoteCount);
+                }
+                if (c == '\n')
+                {
+                    recordFinished = true;
+                }
+            }
+
+            return recordFinished;
+        }
+
+        private void HandleFieldDelimiter(int readIdx, char? lastChar, ref int fieldIdxStart, ref bool inQuotes, ref int quoteCount)
+        {
+            if (inQuotes)
+            {
+                if (lastChar == DOUBLE_QUOTE)
+                {
+                    AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 1, quoteCount);
+                    quoteCount = 0;
+                    fieldIdxStart = readIdx + 1;
+                    inQuotes = false;
+                }
+            }
+            else
+            {
+                if (lastChar == DOUBLE_QUOTE)
+                {
+                    // field ended with quote but not started with quote ==> error
+                }
+                else
+                {
+                    Trace.Assert(quoteCount == 0, "unquoted field ended. quote count should be 0. but is not.");
+                    // unquoted field ended
+                    AddField(
+                        startIdx: fieldIdxStart,
+                        len: readIdx - fieldIdxStart,
+                        QuoteCount: 0);
+                    fieldIdxStart = readIdx + 1;
+                }
+            }
+        }
+        private void HandleDoubleQuote(char? lastChar, ref int fieldIdxStart, ref bool setLastChar, ref bool inQuotes, ref int quoteCount)
+        {
+            if (inQuotes)
+            {
+                if (lastChar == DOUBLE_QUOTE)
+                {
+                    ++quoteCount;
+                    setLastChar = false;
+                }
+            }
+            else
+            {
+                if (lastChar == FieldDelimiter)
+                {
+                    inQuotes = true;
+                    setLastChar = false;
+                    ++fieldIdxStart;
+                }
+                else
+                {
+                    throw new Exception("quotes are not allowed within unquoted fields");
+                }
+            }
         }
         private bool HandleReadIdxBehindBuffer(int readIdx, int fieldIdxStart, int quoteCount, bool recordFinished, char? lastChar, bool inQuotes)
         {
@@ -158,7 +204,7 @@ namespace Spi
                     }
                     else
                     {
-                        // error: missing 2nd end quote
+                        throw new Exception("missing end quote");
                     }
                 }
                 else
@@ -172,7 +218,7 @@ namespace Spi
             {
                 if (_recordStartIdx_Read == 0)
                 {
-                    throw new OutOfMemoryException("buffer exhausted to handle this CSV record");
+                    throw new Exception("buffer exhausted to handle this CSV record");
                 }
 
                 int numberCharsRead = ShiftBufferAndRefill();

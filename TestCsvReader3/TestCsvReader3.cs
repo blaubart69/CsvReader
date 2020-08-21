@@ -112,7 +112,11 @@ namespace TestCsvReader3
         [Fact]
         public void QuoteInTheMiddle()
         {
-            CompareGrids(new string[][] { new string[] { "a", "bb", "c" } }, RunCsvReader(new StringReader("a,b\"b,c")));
+            Exception ex = Assert.Throws<Exception>(() =>
+            {
+                CompareGrids(new string[][] { new string[] { "a", "bb", "c" } }, RunCsvReader(new StringReader("a,b\"b,c")));
+            });
+            Assert.Equal("quotes are not allowed within unquoted fields", ex.Message);
         }
         [Fact]
         public void QuotedWord()
@@ -141,8 +145,12 @@ namespace TestCsvReader3
         [Fact]
         public void OnlyOneQuoteBetweenQuotes()
         {
-            CompareGrids(new string[][] { new string[] { "" } },
+            Exception ex = Assert.Throws<Exception>(() =>
+            {
+                CompareGrids(new string[][] { new string[] { "" } },
                 RunCsvReader(new StringReader("\"\"\"")));
+            });
+            Assert.Equal("missing end quote", ex.Message);
         }
         #region HELPER
         private List<string[]> RunCsvReader(TextReader r, int buffersize=1024)
