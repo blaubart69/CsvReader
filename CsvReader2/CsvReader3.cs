@@ -310,6 +310,20 @@ namespace Spi
                 return null;
             }
         }
+        public ReadOnlySpan<char> GetRawValue(int idx)
+        {
+            if (idx <= _fieldIdx_toWrite)
+            {
+                Field f = _fields[idx];
+
+                return 
+                    _buf.AsSpan(
+                        start:  _recordStartIdx_Get + f.startIdx,
+                        length: f.len);
+            }
+
+            return null;
+        }
         public int FieldCount
         {
             get

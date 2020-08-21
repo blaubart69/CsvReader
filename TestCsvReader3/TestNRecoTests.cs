@@ -70,24 +70,30 @@ namespace NReco.Csv.Tests {
 				// tab
 				"A\tB\tC \r\n1\t2\t 3\r\n\r\n5\t\t\n\"6\"\t \"7\"\"\" \t\"\"\"\"",
 				// custom 3-symobls
-				"A%%% \"B\"%%%C\n 1%%%2%%%3 \n5%%%6%%6%%%7%\n",
+				//"A%%% \"B\"%%%C\n 1%%%2%%%3 \n5%%%6%%6%%%7%\n",
 				// no trim
 				"A,B,C\n1 , 2  ,3 \n  4,5, 6\n \"7\",\"\"8 ,\"9\"",
 				"A,B,C",
 				"A,B,C\n1,2,3"
 			};
-			var testDelims = new[] { "\t", "%%%", ",", ",", "," };
-			var testTrimFields = new[] { true, true, false, true, true };
-			var testBufSize = new[] { 1024, 1024, 1024, 5, 5};
+			var testDelims = new[] { "\t", 
+				//"%%%",
+				",", ",", "," };
+			var testTrimFields = new[] { true,
+				//true, 
+				false, true, true };
+			var testBufSize = new[] { 1024, 
+				//1024, 
+				1024, 5, 5};
 			var expected = new string[] {
 				"1|2|3|#5|||#6|7\"|\"|#",
-				"1|2|3|#5|6%%6|7%|#",
+				//"1|2|3|#5|6%%6|7%|#",
 				"1 | 2  |3 |#  4|5| 6|# \"7\"|\"\"8 |9|#",
 				"",
 				"1|2|3|#"
 			};
 			for (int i=0; i<tests.Length; i++) {
-				var csvRdr = new CsvReader(
+				var csvRdr = new Spi.CsvReader3(
 					new StreamReader(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(tests[i]))),
 					testDelims[i]);
 				csvRdr.TrimFields = testTrimFields[i];
@@ -122,7 +128,7 @@ namespace NReco.Csv.Tests {
 			int records_written = 0;
 			using (var streamWr = new StreamWriter(memStream, Encoding.UTF8, 4096, leaveOpen: true)) {
 				var bVals = new string[] { "b1", "b2", "b3" };
-				for (int i=0; i< UpperLimit; i+=100) {
+				for (int i=0; i< UpperLimit; i+=10) {
 					//streamWr.WriteLine(String.Format("{0},{1}, \"Quoted\", just a value", i, bVals[i%bVals.Length] ));
 					  streamWr.WriteLine(String.Format("{0},{1},\"Quoted\", just a value", i, bVals[i % bVals.Length]));
 					++records_written;
@@ -141,7 +147,7 @@ namespace NReco.Csv.Tests {
 				{
 					throw new Exception("Wrong read!");
 				}
-				output.WriteLine($"[{csvRdr[0].ToString()}][{csvRdr[1].ToString()}][{csvRdr[2].ToString()}][{csvRdr[3].ToString()}]");
+				//output.WriteLine($"[{csvRdr[0].ToString()}][{csvRdr[1].ToString()}][{csvRdr[2].ToString()}][{csvRdr[3].ToString()}]");
 				++record_read;
 			}
 
@@ -150,29 +156,22 @@ namespace NReco.Csv.Tests {
 
 			Assert.Equal(records_written, record_read);
 		}
-		/*
+		
 		[Fact]
-		public void ProcessValueInBufferTest() {
+		public void TestGetRawValues() {
 			var sb = new StringBuilder();
 			for (int i=0; i<10000; i++) {
-				sb.AppendLine("Some test value, \"Some value with \"\"quotes\"\"\",\"Simple in quotes\",a ");
+				//sb.AppendLine("Some test value, \"Some value with \"\"quotes\"\"\",\"Simple in quotes\",a ");
+				sb.AppendLine("Some test value,\"Some value with \"\"quotes\"\"\",\"Simple in quotes\",a ");
 			}
-			var csvRdr = new CsvReader(new StringReader(sb.ToString())) { BufferSize = 100 };
+			var csvRdr = new Spi.CsvReader3(new StringReader(sb.ToString()), buffersize: 100);
 			while (csvRdr.Read()) {
-				csvRdr.ProcessValueInBuffer(0, (buf, start, len) => {
-					Assert.Equal("Some test value", new string(buf, start, len));
-				});
-				csvRdr.ProcessValueInBuffer(1, (buf, start, len) => {
-					Assert.Equal("Some value with \"quotes\"", new string(buf, start, len));
-				});
-				csvRdr.ProcessValueInBuffer(2, (buf, start, len) => {
-					Assert.Equal("Simple in quotes", new string(buf, start, len));
-				});
-				csvRdr.ProcessValueInBuffer(3, (buf, start, len) => {
-					Assert.Equal("a", new string(buf, start, len));
-				});
+
+				Assert.True(csvRdr.GetRawValue(0).SequenceEqual("Some test value"));
+				Assert.True(csvRdr.GetRawValue(1).SequenceEqual("Some value with \"\"quotes\"\""));
+				Assert.True(csvRdr.GetRawValue(2).SequenceEqual("Simple in quotes"));
+				Assert.True(csvRdr.GetRawValue(3).SequenceEqual("a "));
 			}
 		}
-		*/
 	}
 }
