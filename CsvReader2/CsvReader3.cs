@@ -89,7 +89,6 @@ namespace Spi
                     }
                 }
 
-                Trace.Assert(readIdxAbsolut < _bufLen, "readIdxAbsolut >= _buflen");
                 char c = _buf[readIdxAbsolut];
 
                 if (c == '\n' || c == '\r')
@@ -113,7 +112,6 @@ namespace Spi
 
             return readIdx;
         }
-
         private bool HandleEndOfRecord(char c, char? lastChar, int readIdx, int fieldIdxStart, ref bool inQuotes, int quoteCount, bool recordFinished)
         {
             if (inQuotes)
@@ -147,7 +145,6 @@ namespace Spi
 
             return recordFinished;
         }
-
         private void HandleFieldDelimiter(int readIdx, char? lastChar, ref int fieldIdxStart, ref bool inQuotes, ref int quoteCount)
         {
             if (inQuotes)

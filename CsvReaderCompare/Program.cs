@@ -1,0 +1,48 @@
+﻿using System;
+using System.IO;
+
+namespace CsvReaderCompare
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string filename = args[0];
+
+            using (TextReader r1 = new StreamReader(new FileStream(filename, FileMode.Open, FileAccess.Read), detectEncodingFromByteOrderMarks: true))
+            using (TextReader r2 = new StreamReader(new FileStream(filename, FileMode.Open, FileAccess.Read), detectEncodingFromByteOrderMarks: true))
+            {
+                var spi    = new Spi.CsvReader3(r1, '\t');
+                var gegner = new NReco.Csv.NRecoCsvReader(r2, "\t") { TrimFields = false };
+
+                bool ended = false;
+                int record = 0;
+                for (;;)
+                {
+                    if ( !spi.Read() | !gegner.Read() )
+                    {
+                        break;
+                    }
+
+                    ++record;
+
+                    if ( spi.FieldCount != gegner.FieldsCount )
+                    {
+                        Console.WriteLine($"diff fieldcount - record: {record}\tfields: spi {spi.FieldCount}/{gegner.FieldsCount}");
+                    }
+
+                    for (int i=0; i < spi.FieldCount;++i)
+                    {
+                        string s = spi[i].ToString();
+                        string g = gegner[i];
+                        if ( String.CompareOrdinal( s, g ) != 0 )
+                        {
+                            Console.WriteLine($"diff s: [{s}]\ndiff g: [{g}]");
+                        }
+                    }
+                }
+                Console.WriteLine($"compared {record} records");
+            }
+        }
+    }
+}
