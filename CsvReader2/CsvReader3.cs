@@ -28,7 +28,7 @@ namespace Spi
         int _recordStartIdx_Get;
         int _fieldIdx_toWrite;
 
-        public CsvReader3(TextReader reader, char fieldDelimiter, int buffersize = 4096)
+        public CsvReader3(TextReader reader, char fieldDelimiter = ',', int buffersize = 4096)
         {
             _reader = reader;
             FieldDelimiter = fieldDelimiter;
@@ -46,7 +46,10 @@ namespace Spi
 
             _fieldIdx_toWrite = 0;
 
-            if (_recordStartIdx_Read >= _bufLen)
+            if ( _recordStartIdx_Read == BUFSIZE )
+            {
+            }
+            else if (_recordStartIdx_Read >= _bufLen)
             {
                 return false;
             }
@@ -80,8 +83,13 @@ namespace Spi
                     {
                         goto dirty; // skip reading character
                     }
+                    if ( _recordStartIdx_Read == 0 )
+                    {
+                        readIdxAbsolut = 0 + readIdx;
+                    }
                 }
 
+                Trace.Assert(readIdxAbsolut < _bufLen, "readIdxAbsolut >= _buflen");
                 char c = _buf[readIdxAbsolut];
 
                 if (c == '\n' || c == '\r')
@@ -117,6 +125,10 @@ namespace Spi
                     AddField(startIdx:  fieldIdxStart,
                              len:       (readIdx - fieldIdxStart) - 1,
                                         quoteCount);
+                    if (c == '\n')
+                    {
+                        recordFinished = true;
+                    }
                 }
             }
             else
@@ -218,7 +230,7 @@ namespace Spi
             {
                 if (_recordStartIdx_Read == 0)
                 {
-                    throw new Exception("buffer exhausted to handle this CSV record");
+                    throw new Exception($"buffer exhausted to handle this CSV record. buffer [{_buf}]");
                 }
 
                 int numberCharsRead = ShiftBufferAndRefill();
