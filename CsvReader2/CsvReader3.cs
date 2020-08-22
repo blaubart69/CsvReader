@@ -227,7 +227,7 @@ namespace Spi
             {
                 if (_recordStartIdx_Read == 0)
                 {
-                    throw new Exception($"buffer exhausted to handle this CSV record. buffer [{_buf}]");
+                    throw new Exception($"buffer exhausted to handle this CSV record. buffer [{new string(_buf)}]");
                 }
 
                 int numberCharsRead = ShiftBufferAndRefill();

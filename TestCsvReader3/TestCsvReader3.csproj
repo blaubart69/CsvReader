@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CsvReader2\CsvReader2.csproj" />
+    <ProjectReference Include="..\CsvReader2\CsvReader3.csproj" />
   </ItemGroup>
 
 </Project>
