@@ -7,10 +7,11 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CsvReader2\CsvReader3.csproj" />
+    <ProjectReference Include="..\CsvReaderBuffer\CsvReaderBuffer.csproj" />
   </ItemGroup>
 
 </Project>

@@ -9,13 +9,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCsvReader", "TestCsvRea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RunCsvReader", "RunCsvReader\RunCsvReader.csproj", "{A7CD6444-8C61-43A8-B4FB-3D653742F074}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CsvReader3", "CsvReader2\CsvReader3.csproj", "{17593D1F-3148-4242-ACEF-C6DC8963066D}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchCsvReaders", "BenchCsvReaders\BenchCsvReaders.csproj", "{939536FC-D82F-4CF6-87EF-5C5C40417D57}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestCsvReader3", "TestCsvReader3\TestCsvReader3.csproj", "{E90EBB10-EE5D-4D5C-B9AA-B4266430002C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CsvReaderCompare", "CsvReaderCompare\CsvReaderCompare.csproj", "{9758EA05-040A-4DC4-A5DA-390994D51891}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CsvReaderBuffer", "CsvReaderBuffer\CsvReaderBuffer.csproj", "{91E4E7FE-CC90-4DC8-AB91-4F5254940CD9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +35,6 @@ Global
 		{A7CD6444-8C61-43A8-B4FB-3D653742F074}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7CD6444-8C61-43A8-B4FB-3D653742F074}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7CD6444-8C61-43A8-B4FB-3D653742F074}.Release|Any CPU.Build.0 = Release|Any CPU
-		{17593D1F-3148-4242-ACEF-C6DC8963066D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{17593D1F-3148-4242-ACEF-C6DC8963066D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{17593D1F-3148-4242-ACEF-C6DC8963066D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{17593D1F-3148-4242-ACEF-C6DC8963066D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{939536FC-D82F-4CF6-87EF-5C5C40417D57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{939536FC-D82F-4CF6-87EF-5C5C40417D57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{939536FC-D82F-4CF6-87EF-5C5C40417D57}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,6 +47,10 @@ Global
 		{9758EA05-040A-4DC4-A5DA-390994D51891}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9758EA05-040A-4DC4-A5DA-390994D51891}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9758EA05-040A-4DC4-A5DA-390994D51891}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91E4E7FE-CC90-4DC8-AB91-4F5254940CD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91E4E7FE-CC90-4DC8-AB91-4F5254940CD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91E4E7FE-CC90-4DC8-AB91-4F5254940CD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91E4E7FE-CC90-4DC8-AB91-4F5254940CD9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
