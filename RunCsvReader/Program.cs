@@ -8,8 +8,10 @@ namespace RunCsvReader
     {
         static void Main(string[] args)
         {
-            using (var bs = new BufferedStream(new FileStream(@"c:\temp\allc.tsv", FileMode.Open)))
-            using (TextReader rdr = new StreamReader(bs, detectEncodingFromByteOrderMarks: true))
+            using (TextReader rdr = 
+               new StreamReader(
+                    new FileStream(@"c:\temp\allc.tsv", FileMode.Open, FileAccess.Read), 
+               detectEncodingFromByteOrderMarks: true))
             {
                 RunNReco(rdr);
             }

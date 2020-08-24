@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.IO;
 
-
 namespace Spi
 {
-    public class CsvReader
+    public class CsvReader1
     {
         public static void Run(TextReader reader, char fieldDelimiter, Action<string[]> OnRow)
         {

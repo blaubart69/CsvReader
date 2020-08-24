@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace TestCsvReader
 {
-    /// <summary>
-    /// Summary description for TestSilly
-    /// </summary>
-    [TestClass]
     public class TestArrayCopy
     {
-        [TestMethod]
+        [Fact]
         public void CopyToSameArray()
         {
             char[] buf = "Bernhard".ToCharArray();
@@ -23,9 +19,7 @@ namespace TestCsvReader
                 destinationIndex: 0,
                 length: 4);
 
-            CollectionAssert.AreEqual("hardhard".ToCharArray(), buf);
-            Assert.AreEqual(          "hardhard", new string(buf));
-
+            Assert.Equal("hardhard", new string(buf));
         }
     }
 }
