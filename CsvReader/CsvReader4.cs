@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace CsvReader3
+namespace Spi
 {
     public class CsvReader4
     {
@@ -149,7 +149,7 @@ namespace CsvReader3
                     }
                     else if (c == DOUBLE_QUOTE)
                     {
-                        throw new Exception("quote appeared outside a quoted field");
+                        throw new Exception("quotes are not allowed within unquoted fields");
                     }
                 }
 
