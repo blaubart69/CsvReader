@@ -92,29 +92,47 @@ namespace Spi
 
                 if (inQuotedField)
                 {
-                    if (lastChar == DOUBLE_QUOTE)
+                    for (;;)
                     {
-                        if (c == DOUBLE_QUOTE)
+                        if (lastChar == DOUBLE_QUOTE)
                         {
-                            ++quoteCount;
-                            lastChar = null;
-                            goto dirty;
-                        }
-                        else if (c == FieldDelimiter || c == '\n' || c == '\r')
-                        {
-                            AddField(   startIdx:   fieldIdxStart,
-                                        len:        (readIdx - fieldIdxStart) - 1,
-                                        quoteCount);
-
-                            inQuotedField = false;
-                            quoteCount = 0;
-                            fieldIdxStart = readIdx + 1;
-
-                            if (c == '\n')
+                            if (c == DOUBLE_QUOTE)
                             {
-                                recordFinished = true;
+                                ++quoteCount;
+                                lastChar = null;
+                                goto donotsetlastchar;
+                            }
+                            else if (c == FieldDelimiter || c == '\n' || c == '\r')
+                            {
+                                AddField(startIdx: fieldIdxStart,
+                                            len: (readIdx - fieldIdxStart) - 1,
+                                            quoteCount);
+
+                                inQuotedField = false;
+                                quoteCount = 0;
+                                fieldIdxStart = readIdx + 1;
+
+                                if (c == '\n')
+                                {
+                                    recordFinished = true;
+                                }
+
+                                break;
                             }
                         }
+
+                        lastChar = c;
+
+                    donotsetlastchar:
+
+                        ++readIdx;
+                        readIdxAbsolut = _recordStartIdx_Read + readIdx;
+                        if (readIdxAbsolut >= _bufLen)
+                        {
+                            --readIdx;
+                            break;
+                        }
+                        c = _buf[readIdxAbsolut];
                     }
                 }
                 else
@@ -146,6 +164,9 @@ namespace Spi
                         inQuotedField = true;
                         lastChar = null;
                         goto dirty;
+                        // loop until end of quoted field
+
+
                     }
                     else if (c == DOUBLE_QUOTE)
                     {

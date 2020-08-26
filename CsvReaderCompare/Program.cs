@@ -13,7 +13,7 @@ namespace CsvReaderCompare
             using (TextReader r1 = new StreamReader(new FileStream(filename, FileMode.Open, FileAccess.Read), detectEncodingFromByteOrderMarks: true))
             using (TextReader r2 = new StreamReader(new FileStream(filename, FileMode.Open, FileAccess.Read), detectEncodingFromByteOrderMarks: true))
             {
-                var spi    = new Spi.CsvReader3(r1, delim[0], buffersize: 64*1024);
+                var spi    = new Spi.CsvReader4(r1, delim[0], buffersize: 64*1024);
                 var gegner = new NReco.Csv.NRecoCsvReader(r2, delim) { TrimFields = false, BufferSize=64*1024 };
 
                 int record = 0;
