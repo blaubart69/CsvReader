@@ -30,6 +30,8 @@ namespace Spi
         int _recordStartIdx_Get;
         int _fieldIdx_toWrite;
 
+        readonly StringBuilder dbg = new StringBuilder();
+
         public CsvReader4(TextReader reader, char fieldDelimiter = ',', int buffersize = 4096)
         {
             _reader = reader;
@@ -72,6 +74,8 @@ namespace Spi
             bool recordFinished = false;
             bool inQuotedField = false;
 
+            dbg.Length = 0;
+
             while (!recordFinished)
             {
                 int readIdxAbsolut = _recordStartIdx_Read + readIdx;
@@ -92,34 +96,39 @@ namespace Spi
 
                 if (inQuotedField)
                 {
-                    for (;;)
+                    if (lastChar == null && c == DOUBLE_QUOTE)
                     {
-                        if (c == DOUBLE_QUOTE)
+                        inQuotedField = false;
+                    }
+                    else
+                    {
+                        for (;;)
                         {
-                            int nextIdx = readIdxAbsolut + 1;
-                            if (nextIdx >= _bufLen)
+                            if (lastChar == DOUBLE_QUOTE)
+                            {
+                                if (c == DOUBLE_QUOTE)
+                                {
+                                    ++quoteCount;
+                                }
+                                else if (c == FieldDelimiter || c == '\n' || c == '\r')
+                                {
+                                    inQuotedField = false;
+                                    AddField(startIdx: fieldIdxStart,
+                                        len: (readIdx - fieldIdxStart) - 1,
+                                        quoteCount);
+                                    break;
+                                }
+                            }
+                            ++readIdx;
+                            readIdxAbsolut = _recordStartIdx_Read + readIdx;
+                            if (readIdxAbsolut >= _bufLen)
                             {
                                 break;
                             }
-                            if ( _buf[nextIdx] == DOUBLE_QUOTE)
-                            {
-                                ++quoteCount;
-                                ++readIdx;
-                            }
-                            else
-                            {
-                                inQuotedField = false;
-                                break;
-                            }
-                        }
 
-                        ++readIdx;
-                        readIdxAbsolut = _recordStartIdx_Read + readIdx;
-                        if (readIdxAbsolut >= _bufLen)
-                        {
-                            break;
+                            lastChar = c;
+                            c = _buf[readIdxAbsolut];
                         }
-                        c = _buf[readIdxAbsolut];
                     }
                 }
                 else
@@ -141,9 +150,8 @@ namespace Spi
                     }
                     else if (c == FieldDelimiter)
                     {
-                        int truncate = lastChar == DOUBLE_QUOTE ? 1 : 0;
                         AddField(   startIdx:   fieldIdxStart,
-                                    len:        (readIdx - fieldIdxStart) - truncate,
+                                    len:        (readIdx - fieldIdxStart),
                                     quoteCount);
                         quoteCount = 0;
 
@@ -160,7 +168,14 @@ namespace Spi
                         }
                         else
                         {
-                            throw new Exception("quotes are not allowed within unquoted fields");
+                            Console.WriteLine($"c\t[{c}]\nlastChar\t[{lastChar}]\ninQuotedField\t{inQuotedField}\nbuflen\t{_bufLen}\n_recordStartIdx_Read\t{_recordStartIdx_Read}\nreadIdx\t{readIdx}\nreadIdxAbsolut\t{readIdxAbsolut}\n_fieldIdx_toWrite\t{_fieldIdx_toWrite}\nfieldIdxStart\t{fieldIdxStart}");
+                            for (int i=0; i <_fieldIdx_toWrite; ++i)
+                            {
+                                Console.WriteLine($"fieldIdx({i})\t[[[{this[i].ToString()}]]]");
+                            }
+                            string errRecord = new string(_buf, _recordStartIdx_Read, readIdx+1).Replace("\r\n","__");
+                            Console.WriteLine(dbg.ToString());
+                            throw new Exception($"quotes are not allowed within unquoted fields. [{errRecord}]");
                         }
                     }
                 }
@@ -179,9 +194,10 @@ namespace Spi
             {
                 // EOF reached since the buffer is not full
                 // last record
-                if (lastChar == DOUBLE_QUOTE)
+                if (lastChar == DOUBLE_QUOTE || lastChar == '\n' || lastChar == '\r')
                 {
-                    AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 1, quoteCount);
+                    AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 2, quoteCount);
+                    dbg.AppendLine("HandleReadIdxBehindBuffer - lastChar == DOUBLE_QOUTE");
                 }
                 else
                 {
@@ -189,6 +205,7 @@ namespace Spi
                     {
                         throw new Exception("missing end quote");
                     }
+                    dbg.AppendLine("HandleReadIdxBehindBuffer - lastChar == DOUBLE_QOUTE - ELSE");
                     AddField(fieldIdxStart, (readIdx - fieldIdxStart), quoteCount);
                 }
 
@@ -205,12 +222,15 @@ namespace Spi
                 if (numberCharsRead == 0)
                 {
                     AddField(fieldIdxStart, readIdx, quoteCount);
+                    dbg.AppendLine("HandleReadIdxBehindBuffer - numCharsRead == 0");
                     recordFinished = true;
                 }
 
                 _recordStartIdx_Read = 0;
                 _recordStartIdx_Get = 0;
             }
+
+            dbg.AppendLine($"HandleReadIdxBehindBuffer {recordFinished}");
 
             return recordFinished;
         }

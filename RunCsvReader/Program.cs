@@ -13,15 +13,21 @@ namespace RunCsvReader
                     new FileStream(@"c:\temp\allc.tsv", FileMode.Open, FileAccess.Read), 
                detectEncodingFromByteOrderMarks: true))
             {
-                RunNReco(rdr);
+                RunNReco(rdr, ',');
             }
         }
-        static void RunNReco(TextReader rdr)
+        static void RunNReco(TextReader rdr, char delim)
         {
-            var csvRdr = new NReco.Csv.CsvReader(rdr, "\t");
+            var csvRdr = new NReco.Csv.CsvReader(rdr, delimiter: delim.ToString());
             while (csvRdr.Read())
             {
-                
+            }
+        }
+        static void RunV4(TextReader rdr, char delim)
+        {
+            var csvRdr = new Spi.CsvReader4(rdr, delim);
+            while (csvRdr.Read())
+            {
             }
         }
     }

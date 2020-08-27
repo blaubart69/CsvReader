@@ -152,14 +152,83 @@ namespace TestCsvReader4
             });
             Assert.Equal("missing end quote", ex.Message);
         }
+        [Fact]
+        public void RealLife1()
+        {
+                                                      // "unanimously approved";"No";"";"";"";"No date entered."
+            CompareGrids(new string[][] { new string[] { "unanimously approved", "No","","","", "No date entered." } },
+                         RunCsvReader(new StringReader("\"unanimously approved\";\"No\";\"\";\"\";\"\";\"No date entered.\""),delim: ';'));
+        }
+        [Fact]
+        public void RealLife2()
+        {
+            string test = @"""------------------"";""--------------------------------------------------"";"""";""----"";""----------------------------------------------"";""-------"";""--"";"""";""--------"";""-------"";""----------"";"""";""-------------------------------------------------------------------------------
+-------------------"";""--------------------"";""No"";"""";"""";"""";""No date entered."";"""";"""";"""";"""";""0"";""0"";""""";
+  
+            // "unanimously approved";"No";"";"";"";"No date entered."
+            CompareGrids(new string[][] { new string[] {
+                "------------------",
+                "--------------------------------------------------",
+                "",
+                "----",
+                "----------------------------------------------",
+                "-------",
+                "--",
+                "",
+                "--------",
+                "-------",
+                "----------",
+                "",
+                "-------------------------------------------------------------------------------\r\n-------------------",
+                "--------------------",
+                "No",
+                "",
+                "",
+                "",
+                "No date entered.",
+                "",
+                "",
+                "",
+                "",
+                "0",
+                "0",
+                ""
+                } },
+                         RunCsvReader(new StringReader(test), delim: ';'));
+        }
+
+        [Fact]
+        public void BufferEdges()
+        {
+            CompareGrids(new string[][] { new string[] { "2345" }, new string[] { "90" } },
+                         RunCsvReader(new StringReader("\"2345\"\r\n\"90\""), buffersize: 10));
+        }
+        [Fact]
+        public void BufferEndsWithAndDoubleQuote()
+        {
+            CompareGrids(new string[][] { new string[] { "123","567" }, new string[] { "90", "" } },
+                         RunCsvReader(new StringReader("123,567\r\n\"90\",\"\""), buffersize: 10));
+        }
+        [Fact]
+        public void DoubleQuoteIsFirstInShiftedBuffer()
+        {
+            CompareGrids(new string[][] { new string[] { "123", "5678" }, new string[] { "90", "" } },
+                         RunCsvReader(new StringReader("123,5678\r\n\"90\",\"\""), buffersize: 10));
+        }
+        [Fact]
+        public void BufferEmptyFields1()
+        {
+            CompareGrids(new string[][] { new string[] { "12", "34" }, new string[] { "", "", "" } },
+                         RunCsvReader(new StringReader("12,34\r\n\"\",\"\",\"\""), buffersize: 10));
+        }
         #region HELPER
-        private List<string[]> RunCsvReader(TextReader r, int buffersize=1024)
+        private List<string[]> RunCsvReader(TextReader r, int buffersize=1024, char delim=',')
         {
             List<string[]> data = new List<string[]>();
 
             using (r)
             {
-                var csvrdr = new Spi.CsvReader4(r, ',', buffersize);
+                var csvrdr = new Spi.CsvReader4(r, delim, buffersize);
                 while (csvrdr.Read())
                 {
                     List<string> row = new List<string>();

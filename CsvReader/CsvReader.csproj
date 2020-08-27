@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AssemblyName>CsvReader3</AssemblyName>
+    <AssemblyName>CsvReader</AssemblyName>
     <RootNamespace>CsvReader3</RootNamespace>
   </PropertyGroup>
 
