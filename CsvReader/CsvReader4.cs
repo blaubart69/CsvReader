@@ -94,42 +94,29 @@ namespace Spi
                 {
                     for (;;)
                     {
-                        if (lastChar == DOUBLE_QUOTE)
+                        if (c == DOUBLE_QUOTE)
                         {
-                            if (c == DOUBLE_QUOTE)
+                            int nextIdx = readIdxAbsolut + 1;
+                            if (nextIdx >= _bufLen)
+                            {
+                                break;
+                            }
+                            if ( _buf[nextIdx] == DOUBLE_QUOTE)
                             {
                                 ++quoteCount;
-                                lastChar = null;
-                                goto donotsetlastchar;
+                                ++readIdx;
                             }
-                            else if (c == FieldDelimiter || c == '\n' || c == '\r')
+                            else
                             {
-                                AddField(startIdx: fieldIdxStart,
-                                            len: (readIdx - fieldIdxStart) - 1,
-                                            quoteCount);
-
                                 inQuotedField = false;
-                                quoteCount = 0;
-                                fieldIdxStart = readIdx + 1;
-
-                                if (c == '\n')
-                                {
-                                    recordFinished = true;
-                                }
-
                                 break;
                             }
                         }
-
-                        lastChar = c;
-
-                    donotsetlastchar:
 
                         ++readIdx;
                         readIdxAbsolut = _recordStartIdx_Read + readIdx;
                         if (readIdxAbsolut >= _bufLen)
                         {
-                            --readIdx;
                             break;
                         }
                         c = _buf[readIdxAbsolut];
@@ -141,9 +128,11 @@ namespace Spi
                     {
                         if (lastChar != '\n' && lastChar != '\r')
                         {
+                            int truncate = lastChar == DOUBLE_QUOTE ? 1 : 0;
                             AddField(startIdx:      fieldIdxStart,
-                                     len:           readIdx - fieldIdxStart,
-                                     quoteCount:    0);
+                                     len:           (readIdx - fieldIdxStart) - truncate,
+                                     quoteCount);
+                            quoteCount = 0;
                         }
                         if (c == '\n')
                         {
@@ -152,25 +141,27 @@ namespace Spi
                     }
                     else if (c == FieldDelimiter)
                     {
+                        int truncate = lastChar == DOUBLE_QUOTE ? 1 : 0;
                         AddField(   startIdx:   fieldIdxStart,
-                                    len:        readIdx - fieldIdxStart,
-                                    quoteCount: 0);
+                                    len:        (readIdx - fieldIdxStart) - truncate,
+                                    quoteCount);
+                        quoteCount = 0;
 
                         fieldIdxStart = readIdx + 1;
                     }
-                    else if (lastChar == FieldDelimiter && c == DOUBLE_QUOTE)
-                    {
-                        ++fieldIdxStart;
-                        inQuotedField = true;
-                        lastChar = null;
-                        goto dirty;
-                        // loop until end of quoted field
-
-
-                    }
                     else if (c == DOUBLE_QUOTE)
                     {
-                        throw new Exception("quotes are not allowed within unquoted fields");
+                        if (lastChar == FieldDelimiter)
+                        {
+                            ++fieldIdxStart;
+                            inQuotedField = true;
+                            lastChar = null;
+                            goto dirty;
+                        }
+                        else
+                        {
+                            throw new Exception("quotes are not allowed within unquoted fields");
+                        }
                     }
                 }
 
@@ -188,20 +179,17 @@ namespace Spi
             {
                 // EOF reached since the buffer is not full
                 // last record
-                if (inQuotedField)
+                if (lastChar == DOUBLE_QUOTE)
                 {
-                    if (lastChar == DOUBLE_QUOTE)
-                    {
-                        AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 1, quoteCount);
-                    }
-                    else
-                    {
-                        throw new Exception("missing end quote");
-                    }
+                    AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 1, quoteCount);
                 }
                 else
                 {
-                    AddField(fieldIdxStart, readIdx - fieldIdxStart, quoteCount);
+                    if (inQuotedField)
+                    {
+                        throw new Exception("missing end quote");
+                    }
+                    AddField(fieldIdxStart, (readIdx - fieldIdxStart), quoteCount);
                 }
 
                 recordFinished = true;
