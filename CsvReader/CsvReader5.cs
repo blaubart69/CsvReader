@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Spi
 {
-    public class CsvReader4
+    public class CsvReader5
     {
         struct Field
         {
@@ -15,57 +15,61 @@ namespace Spi
             public int QuoteCount;
         }
 
-        readonly TextReader _reader;
+        TextReaderBufferEspecial _reader;
+        readonly Func<TextReaderBufferEspecial> readerFactory;
+
         readonly char FieldDelimiter;
 
-        readonly int BUFSIZE;
         const int INITIAL_FIELDS_SIZE = 8;
         const char DOUBLE_QUOTE = '\"';
 
         Field[] _fields;
 
-        char[] _buf;
-        int _bufLen;
-        int _recordStartIdx_Read;
-        int _recordStartIdx_Get;
         int _fieldIdx_toWrite;
 
         readonly StringBuilder dbg = new StringBuilder();
 
-        public CsvReader4(TextReader reader, char fieldDelimiter = ',', int buffersize = 4096)
+        public CsvReader5(TextReader reader, char fieldDelimiter = ',', int buffersize = 4096)
         {
-            _reader = reader;
+            readerFactory = () => new TextReaderBufferEspecial(reader, buffersize);
             FieldDelimiter = fieldDelimiter;
-            BUFSIZE = buffersize;
+            _fields = new Field[INITIAL_FIELDS_SIZE];
         }
         public bool Read()
         {
-            if (_buf == null)
+            if ( _reader == null )
             {
-                _buf = new char[BUFSIZE];
-                _bufLen = _reader.ReadBlock(_buf);
-                _recordStartIdx_Read = 0;
-                _fields = new Field[INITIAL_FIELDS_SIZE];
+                _reader = readerFactory();
             }
 
-            _fieldIdx_toWrite = 0;
-
-            if (_recordStartIdx_Read == BUFSIZE)
-            {
-            }
-            else if (_recordStartIdx_Read >= _bufLen)
+            if ( _reader.EOF() )
             {
                 return false;
             }
 
-            _recordStartIdx_Get = _recordStartIdx_Read;
+            _fieldIdx_toWrite = 0;
 
-            int recordLength = ReadOneRecord();
-            _recordStartIdx_Read += recordLength;
-
-            return true;
+            return ReadOneRecord();
         }
-        private int ReadOneRecord()
+        private bool ReadOneRecord()
+        {
+            char c = '\0';
+            char lastChar = FieldDelimiter;
+
+            while (true)
+            {
+                if (_reader.Read(ref c))
+                {
+
+                }
+                else // EOF
+                {
+
+                }
+            }
+        }
+        /*
+        private bool ReadOneRecord()
         {
             int readIdx = 0;
             int fieldIdxStart = 0;
@@ -116,6 +120,7 @@ namespace Spi
                                     AddField(startIdx: fieldIdxStart,
                                         len: (readIdx - fieldIdxStart) - 1,
                                         quoteCount);
+                                    fieldIdxStart = readIdx + 1;
                                     break;
                                 }
                             }
@@ -123,6 +128,13 @@ namespace Spi
                             readIdxAbsolut = _recordStartIdx_Read + readIdx;
                             if (readIdxAbsolut >= _bufLen)
                             {
+                                if ( _bufLen < BUFSIZE )
+                                {
+                                    AddField(startIdx: fieldIdxStart,
+                                       len: (readIdx - fieldIdxStart) - 1,
+                                       quoteCount);
+                                    inQuotedField = false;
+                                }
                                 break;
                             }
 
@@ -192,22 +204,11 @@ namespace Spi
         {
             if (_bufLen < BUFSIZE)
             {
-                // EOF reached since the buffer is not full
-                // last record
-                if (lastChar == DOUBLE_QUOTE || lastChar == '\n' || lastChar == '\r')
+                if (inQuotedField)
                 {
-                    AddField(fieldIdxStart, (readIdx - fieldIdxStart) - 2, quoteCount);
-                    dbg.AppendLine("HandleReadIdxBehindBuffer - lastChar == DOUBLE_QOUTE");
+                    throw new Exception("missing end quote");
                 }
-                else
-                {
-                    if (inQuotedField)
-                    {
-                        throw new Exception("missing end quote");
-                    }
-                    dbg.AppendLine("HandleReadIdxBehindBuffer - lastChar == DOUBLE_QOUTE - ELSE");
-                    AddField(fieldIdxStart, (readIdx - fieldIdxStart), quoteCount);
-                }
+                AddField(fieldIdxStart, (readIdx - fieldIdxStart), quoteCount);
 
                 recordFinished = true;
             }
@@ -259,6 +260,7 @@ namespace Spi
 
             return numberCharsRead;
         }
+        */
         private void AddField(int startIdx, int len, int quoteCount)
         {
             if (_fieldIdx_toWrite == _fields.Length)

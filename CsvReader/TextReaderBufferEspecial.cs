@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace CsvReader4
+namespace Spi
 {
     public class TextReaderBufferEspecial
     {
@@ -42,6 +42,13 @@ namespace CsvReader4
         public void SetStartIdx()
         {
             _startIdx += _readIdx;
+            _readIdx = 0;
+        }
+        public bool EOF()
+        {
+            return
+                   (_bufLen < BUFSIZE)
+                && (_startIdx + _readIdx >= _bufLen);
         }
         private bool HandleReadBehindBuffer()
         {

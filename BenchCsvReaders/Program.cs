@@ -30,7 +30,7 @@ namespace BenchCsvReaders
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc.tsv", detectEncodingFromByteOrderMarks: true))
             {
-                var csvrdr = new Spi.CsvReader4(rdr, '\t');
+                var csvrdr = new Spi.CsvReader5(rdr, '\t');
                 while (csvrdr.Read())
                 {
                 }
@@ -41,7 +41,7 @@ namespace BenchCsvReaders
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc.tsv", detectEncodingFromByteOrderMarks: true))
             {
-                var csvrdr = new Spi.CsvReader4(rdr, '\t', buffersize: 32*1024);
+                var csvrdr = new Spi.CsvReader5(rdr, '\t', buffersize: 32*1024);
                 while (csvrdr.Read())
                 {
                 }
@@ -74,7 +74,7 @@ namespace BenchCsvReaders
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\2.csv", detectEncodingFromByteOrderMarks: true))
             {
-                var csvrdr = new Spi.CsvReader4(rdr, ';', buffersize: 64*1024);
+                var csvrdr = new Spi.CsvReader5(rdr, ';', buffersize: 64*1024);
                 while (csvrdr.Read())
                 {
                 }
@@ -108,7 +108,7 @@ namespace BenchCsvReaders
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc_quoted.csv", detectEncodingFromByteOrderMarks: true))
             {
-                var csvrdr = new Spi.CsvReader4(rdr, ',');
+                var csvrdr = new Spi.CsvReader5(rdr, ',');
                 while (csvrdr.Read())
                 {
                 }
@@ -119,7 +119,7 @@ namespace BenchCsvReaders
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc_quoted.csv", detectEncodingFromByteOrderMarks: true))
             {
-                var csvrdr = new Spi.CsvReader4(rdr, ',', buffersize: 32*1024);
+                var csvrdr = new Spi.CsvReader5(rdr, ',', buffersize: 32*1024);
                 while (csvrdr.Read())
                 {
                 }
