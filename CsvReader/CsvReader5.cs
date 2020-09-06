@@ -15,8 +15,8 @@ namespace Spi
             public int QuoteCount;
         }
 
-        TextReaderBufferEspecial _reader;
-        readonly Func<TextReaderBufferEspecial> readerFactory;
+        BufferEspecial _buffer;
+        readonly Func<BufferEspecial> readerFactory;
 
         readonly char FieldDelimiter;
 
@@ -31,18 +31,18 @@ namespace Spi
 
         public CsvReader5(TextReader reader, char fieldDelimiter = ',', int buffersize = 4096)
         {
-            readerFactory = () => new TextReaderBufferEspecial(reader, buffersize);
+            readerFactory = () => new BufferEspecial(reader, buffersize);
             FieldDelimiter = fieldDelimiter;
             _fields = new Field[INITIAL_FIELDS_SIZE];
         }
         public bool Read()
         {
-            if ( _reader == null )
+            if ( _buffer == null )
             {
-                _reader = readerFactory();
+                _buffer = readerFactory();
             }
 
-            if ( _reader.EOF() )
+            if ( _buffer.EOF() )
             {
                 return false;
             }
@@ -58,7 +58,7 @@ namespace Spi
 
             while (true)
             {
-                if (_reader.Read(ref c))
+                if (_buffer.Read(ref c))
                 {
 
                 }
@@ -283,9 +283,7 @@ namespace Spi
                 {
                     Field f = _fields[idx];
 
-                    var fieldValue =
-                        _buf.AsSpan(start: _recordStartIdx_Get + f.startIdx,
-                                    length: f.len);
+                    var fieldValue = _buffer.GetSpan(f.startIdx, f.len);
 
                     if (f.QuoteCount == 0)
                     {
@@ -306,10 +304,7 @@ namespace Spi
             {
                 Field f = _fields[idx];
 
-                return
-                    _buf.AsSpan(
-                        start: _recordStartIdx_Get + f.startIdx,
-                        length: f.len);
+                return _buffer.GetSpan(f.startIdx, f.len);
             }
 
             return null;

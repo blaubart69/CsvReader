@@ -5,7 +5,7 @@ using Xunit;
 
 namespace TestCsvReader4
 {
-    public class TestCsvReader4
+    public class TestCsvReader5
     {
         [Fact]
         public void one_lonely_field()
@@ -228,7 +228,7 @@ namespace TestCsvReader4
 
             using (r)
             {
-                var csvrdr = new Spi.CsvReader4(r, delim, buffersize);
+                var csvrdr = new Spi.CsvReader5(r, delim, buffersize);
                 while (csvrdr.Read())
                 {
                     List<string> row = new List<string>();

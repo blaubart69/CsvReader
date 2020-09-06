@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Spi
 {
-    public class TextReaderBufferEspecial
+    public class BufferEspecial
     {
         readonly TextReader _reader;
         readonly int BUFSIZE;
@@ -12,7 +12,7 @@ namespace Spi
         int _startIdx;
         int _readIdx;
 
-        public TextReaderBufferEspecial(TextReader rdr, int buffersize = 4096)
+        public BufferEspecial(TextReader rdr, int buffersize = 4096)
         {
             _reader = rdr;
             BUFSIZE = buffersize;
@@ -49,6 +49,10 @@ namespace Spi
             return
                    (_bufLen < BUFSIZE)
                 && (_startIdx + _readIdx >= _bufLen);
+        }
+        public ReadOnlySpan<char> GetSpan(int start, int length)
+        {
+            return _buf.AsSpan(_startIdx + start, length);
         }
         private bool HandleReadBehindBuffer()
         {
