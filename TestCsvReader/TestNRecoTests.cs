@@ -8,7 +8,8 @@ using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace NReco.Csv.Tests {
+namespace TestCsvReader
+{
 
 	public class CsvReaderTests {
 

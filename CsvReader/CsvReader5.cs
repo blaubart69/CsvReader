@@ -48,220 +48,92 @@ namespace Spi
             }
 
             _fieldIdx_toWrite = 0;
+            _buffer.SetStartIdx();
 
-            return ReadOneRecord();
+            ReadOneRecord();
+
+            return true;
         }
-        private bool ReadOneRecord()
+        private void ReadOneRecord()
         {
             char c = '\0';
             char lastChar = FieldDelimiter;
-
-            while (true)
-            {
-                if (_buffer.Read(ref c))
-                {
-
-                }
-                else // EOF
-                {
-
-                }
-            }
-        }
-        /*
-        private bool ReadOneRecord()
-        {
-            int readIdx = 0;
             int fieldIdxStart = 0;
-            char? lastChar = FieldDelimiter;
             int quoteCount = 0;
-            bool recordFinished = false;
-            bool inQuotedField = false;
 
-            dbg.Length = 0;
-
-            while (!recordFinished)
+            while (_buffer.Read(ref c))
             {
-                int readIdxAbsolut = _recordStartIdx_Read + readIdx;
-                if (readIdxAbsolut >= _bufLen)
+                if (c == '\n' || c == '\r')
                 {
-                    recordFinished = HandleReadIdxBehindBuffer(readIdx, fieldIdxStart, quoteCount, recordFinished, lastChar, inQuotedField);
-                    if (recordFinished)
+                    if (lastChar != '\n' && lastChar != '\r')
                     {
-                        goto dirty; // skip reading character
+                        AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, quoteCount);
                     }
-                    if (_recordStartIdx_Read == 0)
+                    if (c == '\n')
                     {
-                        readIdxAbsolut = 0 + readIdx;
+                        return;
                     }
                 }
-
-                char c = _buf[readIdxAbsolut];
-
-                if (inQuotedField)
+                else if (c == FieldDelimiter)
                 {
-                    if (lastChar == null && c == DOUBLE_QUOTE)
+                    AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, quoteCount);
+                    quoteCount = 0;
+                    fieldIdxStart = _buffer.LastReadIdx() + 1;
+                }
+                else if (c == DOUBLE_QUOTE)
+                {
+                    if (lastChar == FieldDelimiter)
                     {
-                        inQuotedField = false;
+                        ++fieldIdxStart;
+                        if (ReadQuotedField(out quoteCount) != DOUBLE_QUOTE)
+                        {
+                            throw new Exception("quoted field has no end quote");
+                        }
+                        lastChar = DOUBLE_QUOTE;
                     }
                     else
                     {
-                        for (;;)
-                        {
-                            if (lastChar == DOUBLE_QUOTE)
-                            {
-                                if (c == DOUBLE_QUOTE)
-                                {
-                                    ++quoteCount;
-                                }
-                                else if (c == FieldDelimiter || c == '\n' || c == '\r')
-                                {
-                                    inQuotedField = false;
-                                    AddField(startIdx: fieldIdxStart,
-                                        len: (readIdx - fieldIdxStart) - 1,
-                                        quoteCount);
-                                    fieldIdxStart = readIdx + 1;
-                                    break;
-                                }
-                            }
-                            ++readIdx;
-                            readIdxAbsolut = _recordStartIdx_Read + readIdx;
-                            if (readIdxAbsolut >= _bufLen)
-                            {
-                                if ( _bufLen < BUFSIZE )
-                                {
-                                    AddField(startIdx: fieldIdxStart,
-                                       len: (readIdx - fieldIdxStart) - 1,
-                                       quoteCount);
-                                    inQuotedField = false;
-                                }
-                                break;
-                            }
-
-                            lastChar = c;
-                            c = _buf[readIdxAbsolut];
-                        }
-                    }
-                }
-                else
-                {
-                    if (c == '\n' || c == '\r')
-                    {
-                        if (lastChar != '\n' && lastChar != '\r')
-                        {
-                            int truncate = lastChar == DOUBLE_QUOTE ? 1 : 0;
-                            AddField(startIdx:      fieldIdxStart,
-                                     len:           (readIdx - fieldIdxStart) - truncate,
-                                     quoteCount);
-                            quoteCount = 0;
-                        }
-                        if (c == '\n')
-                        {
-                            recordFinished = true;
-                        }
-                    }
-                    else if (c == FieldDelimiter)
-                    {
-                        AddField(   startIdx:   fieldIdxStart,
-                                    len:        (readIdx - fieldIdxStart),
-                                    quoteCount);
-                        quoteCount = 0;
-
-                        fieldIdxStart = readIdx + 1;
-                    }
-                    else if (c == DOUBLE_QUOTE)
-                    {
-                        if (lastChar == FieldDelimiter)
-                        {
-                            ++fieldIdxStart;
-                            inQuotedField = true;
-                            lastChar = null;
-                            goto dirty;
-                        }
-                        else
-                        {
-                            Console.WriteLine($"c\t[{c}]\nlastChar\t[{lastChar}]\ninQuotedField\t{inQuotedField}\nbuflen\t{_bufLen}\n_recordStartIdx_Read\t{_recordStartIdx_Read}\nreadIdx\t{readIdx}\nreadIdxAbsolut\t{readIdxAbsolut}\n_fieldIdx_toWrite\t{_fieldIdx_toWrite}\nfieldIdxStart\t{fieldIdxStart}");
-                            for (int i=0; i <_fieldIdx_toWrite; ++i)
-                            {
-                                Console.WriteLine($"fieldIdx({i})\t[[[{this[i].ToString()}]]]");
-                            }
-                            string errRecord = new string(_buf, _recordStartIdx_Read, readIdx+1).Replace("\r\n","__");
-                            Console.WriteLine(dbg.ToString());
-                            throw new Exception($"quotes are not allowed within unquoted fields. [{errRecord}]");
-                        }
+                        throw new Exception("quotes are not allowed within unquoted fields");
                     }
                 }
 
                 lastChar = c;
-
-            dirty:
-                ++readIdx;
             }
-
-            return readIdx;
+            //EOF                
+            AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, quoteCount);
         }
-        private bool HandleReadIdxBehindBuffer(int readIdx, int fieldIdxStart, int quoteCount, bool recordFinished, char? lastChar, bool inQuotedField)
+
+        private char? ReadQuotedField(out int quoteCount)
         {
-            if (_bufLen < BUFSIZE)
+            quoteCount = 0;
+
+            char c = '\0';
+            char? lastChar = null;
+
+            while ( _buffer.Read(ref c) )
             {
-                if (inQuotedField)
+                if ( lastChar == DOUBLE_QUOTE )
                 {
-                    throw new Exception("missing end quote");
+                    if ( c == DOUBLE_QUOTE )
+                    {
+                        ++quoteCount;
+                    }
                 }
-                AddField(fieldIdxStart, (readIdx - fieldIdxStart), quoteCount);
-
-                recordFinished = true;
+                lastChar = c;
             }
-            else
-            {
-                if (_recordStartIdx_Read == 0)
-                {
-                    throw new Exception($"buffer exhausted to handle this CSV record. buffer [{new string(_buf)}]");
-                }
-
-                int numberCharsRead = ShiftBufferAndRefill();
-                if (numberCharsRead == 0)
-                {
-                    AddField(fieldIdxStart, readIdx, quoteCount);
-                    dbg.AppendLine("HandleReadIdxBehindBuffer - numCharsRead == 0");
-                    recordFinished = true;
-                }
-
-                _recordStartIdx_Read = 0;
-                _recordStartIdx_Get = 0;
-            }
-
-            dbg.AppendLine($"HandleReadIdxBehindBuffer {recordFinished}");
-
-            return recordFinished;
+            
+            return lastChar;
         }
-        private int ShiftBufferAndRefill()
+        private void AddField(int startIdx, int endIdx, bool isQuotedField, int quoteCount)
         {
-            //
-            // move the actual record down the array
-            //
-            int charsToMoveDown = _bufLen - _recordStartIdx_Read;
-            if (charsToMoveDown > 0)
-            {
-                Array.Copy(
-                    sourceArray: _buf,
-                    sourceIndex: _recordStartIdx_Read,
-                    destinationArray: _buf,
-                    destinationIndex: 0,
-                    length: charsToMoveDown);
-            }
-            //
-            // fill the rest of the array
-            //
-            int charsToRead = BUFSIZE - charsToMoveDown;
-            int numberCharsRead = _reader.ReadBlock(_buf, charsToMoveDown, charsToRead);
+            int truncate = isQuotedField ? 1 : 0;
 
-            _bufLen = charsToMoveDown + numberCharsRead;
-
-            return numberCharsRead;
+            AddFieldToArray(
+                startIdx,
+                len: (endIdx - startIdx) - truncate,
+                quoteCount);
         }
-        */
-        private void AddField(int startIdx, int len, int quoteCount)
+        private void AddFieldToArray(int startIdx, int len, int quoteCount)
         {
             if (_fieldIdx_toWrite == _fields.Length)
             {

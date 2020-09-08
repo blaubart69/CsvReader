@@ -23,9 +23,9 @@ namespace RunCsvReader
             {
             }
         }
-        static void RunV4(TextReader rdr, char delim)
+        static void RunV3(TextReader rdr, char delim)
         {
-            var csvRdr = new Spi.CsvReader4(rdr, delim);
+            var csvRdr = new Spi.CsvReader3(rdr, delim);
             while (csvRdr.Read())
             {
             }

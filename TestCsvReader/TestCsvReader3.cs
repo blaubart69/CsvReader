@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Xunit;
 
-namespace TestCsvReader3
+namespace TestCsvReader
 {
     public class TestCsvReader3
     {

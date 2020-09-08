@@ -24,16 +24,29 @@ namespace Spi
         public bool Read(ref char c)
         {
             int idxToRead = _startIdx + _readIdx;
+            ++_readIdx;
+
             if (idxToRead < _bufLen)
             {
                 c = _buf[idxToRead];
-                ++_readIdx;
                 return true;
             }
 
             if ( HandleReadBehindBuffer() )
             {
                 c = _buf[0];
+                return true;
+            }
+
+            return false;
+        }
+        public bool Peek(ref char c)
+        {
+            int idxToRead = _startIdx + _readIdx;
+
+            if (idxToRead < _bufLen)
+            {
+                c = _buf[idxToRead];
                 return true;
             }
 
@@ -54,6 +67,11 @@ namespace Spi
         {
             return _buf.AsSpan(_startIdx + start, length);
         }
+        public int LastReadIdx()
+        {
+            return _readIdx - 1;
+        }
+
         private bool HandleReadBehindBuffer()
         {
             if ( _bufLen < BUFSIZE )
@@ -74,7 +92,6 @@ namespace Spi
 
             _startIdx = 0;
             _readIdx = 1;
-
 
             return true;
         }

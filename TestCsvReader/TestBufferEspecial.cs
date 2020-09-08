@@ -15,10 +15,28 @@ namespace TestCsvReader
             var b = new BufferEspecial(new StringReader(""));
             char c = '\0';
             Assert.False(b.Read(ref c));
-
-
-
         }
-
+        [Fact]
+        public void OneCharWithBufsize1()
+        {
+            var b = new BufferEspecial(new StringReader("a"), buffersize:1);
+            char c = '\0';
+            Assert.True(b.Read(ref c));
+            Assert.Equal('a', c);
+            Exception ex = Assert.Throws<Exception>(() =>
+            {
+                b.Read(ref c);
+            });
+            Assert.True(ex != null);
+        }
+        [Fact]
+        public void OneCharWithBufsize2()
+        {
+            var b = new BufferEspecial(new StringReader("a"), buffersize: 2);
+            char c = '\0';
+            Assert.True(b.Read(ref c));
+            Assert.Equal('a', c);
+            Assert.False(b.Read(ref c));
+        }
     }
 }
