@@ -248,6 +248,8 @@ namespace TestCsvReader
 
             for (int i = 0; i < expected.Length; ++i)
             {
+                Assert.Equal(expected[i].Length, actual[i].Length);
+
                 for (int j = 0; j < expected[i].Length; ++j)
                 {
                     Assert.Equal(expected[i][j], actual[i][j]);

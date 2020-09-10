@@ -16,9 +16,9 @@ namespace Spi
         }
 
         BufferEspecial _buffer;
-        readonly Func<BufferEspecial> readerFactory;
+        readonly Func<BufferEspecial> _bufferFactory;
 
-        readonly char FieldDelimiter;
+        readonly char FIELDDELIMITER;
 
         const int INITIAL_FIELDS_SIZE = 8;
         const char DOUBLE_QUOTE = '\"';
@@ -27,19 +27,17 @@ namespace Spi
 
         int _fieldIdx_toWrite;
 
-        readonly StringBuilder dbg = new StringBuilder();
-
         public CsvReader5(TextReader reader, char fieldDelimiter = ',', int buffersize = 4096)
         {
-            readerFactory = () => new BufferEspecial(reader, buffersize);
-            FieldDelimiter = fieldDelimiter;
+            _bufferFactory = () => new BufferEspecial(reader, buffersize);
+            FIELDDELIMITER = fieldDelimiter;
             _fields = new Field[INITIAL_FIELDS_SIZE];
         }
         public bool Read()
         {
             if ( _buffer == null )
             {
-                _buffer = readerFactory();
+                _buffer = _bufferFactory();
             }
 
             if ( _buffer.EOF() )
@@ -54,42 +52,52 @@ namespace Spi
 
             return true;
         }
-        private void ReadOneRecord()
+        private bool ReadOneRecord()
         {
             char c = '\0';
-            char lastChar = FieldDelimiter;
+            char lastChar = FIELDDELIMITER;
             int fieldIdxStart = 0;
             int quoteCount = 0;
 
-            while (_buffer.Read(ref c))
+            if ( !_buffer.ReadNextIdx(ref c))
+            {
+                return false;
+            }
+
+            for (;;)
             {
                 if (c == '\n' || c == '\r')
                 {
                     if (lastChar != '\n' && lastChar != '\r')
                     {
-                        AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, quoteCount);
+                        AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, ref quoteCount);
                     }
                     if (c == '\n')
                     {
-                        return;
+                        return true;
                     }
                 }
-                else if (c == FieldDelimiter)
+                else if (c == FIELDDELIMITER)
                 {
-                    AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, quoteCount);
-                    quoteCount = 0;
+                    AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, ref quoteCount);
                     fieldIdxStart = _buffer.LastReadIdx() + 1;
                 }
                 else if (c == DOUBLE_QUOTE)
                 {
-                    if (lastChar == FieldDelimiter)
+                    if (lastChar == FIELDDELIMITER)
                     {
                         ++fieldIdxStart;
-                        if (ReadQuotedField(out quoteCount) != DOUBLE_QUOTE)
-                        {
-                            throw new Exception("quoted field has no end quote");
-                        }
                         lastChar = DOUBLE_QUOTE;
+                        if ( ReadQuotedField(out quoteCount, ref c))
+                        {
+                            // field ended normal at a double quote
+                            // skip reading char. "c" is already the NEXT char
+                            continue; 
+                        }
+                        else
+                        {
+                            break; // field ended at EOF
+                        }
                     }
                     else
                     {
@@ -98,33 +106,47 @@ namespace Spi
                 }
 
                 lastChar = c;
+
+                if (!_buffer.ReadNextIdx(ref c))
+                {
+                    break;
+                }
             }
             //EOF                
-            AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, quoteCount);
+            AddField(fieldIdxStart, _buffer.LastReadIdx(), lastChar == DOUBLE_QUOTE, ref quoteCount);
+
+            return true;
         }
 
-        private char? ReadQuotedField(out int quoteCount)
+        private bool ReadQuotedField(out int quoteCount, ref char c)
         {
             quoteCount = 0;
 
-            char c = '\0';
-            char? lastChar = null;
-
-            while ( _buffer.Read(ref c) )
+            while (_buffer.ReadNextIdx(ref c))
             {
-                if ( lastChar == DOUBLE_QUOTE )
+                if (c == DOUBLE_QUOTE)
                 {
-                    if ( c == DOUBLE_QUOTE )
+                    if (_buffer.ReadNextIdx(ref c))
                     {
-                        ++quoteCount;
+                        if (c == DOUBLE_QUOTE)
+                        {
+                            ++quoteCount;
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        // quoted field ended at EOF
+                        return false;
                     }
                 }
-                lastChar = c;
             }
-            
-            return lastChar;
+            throw new Exception("EOF before quoted field was closed");
         }
-        private void AddField(int startIdx, int endIdx, bool isQuotedField, int quoteCount)
+        private void AddField(int startIdx, int endIdx, bool isQuotedField, ref int quoteCount)
         {
             int truncate = isQuotedField ? 1 : 0;
 
@@ -132,6 +154,8 @@ namespace Spi
                 startIdx,
                 len: (endIdx - startIdx) - truncate,
                 quoteCount);
+
+            quoteCount = 0;
         }
         private void AddFieldToArray(int startIdx, int len, int quoteCount)
         {
@@ -189,6 +213,15 @@ namespace Spi
             }
         }
         #endregion
-
+        public void PrintDebugInfo()
+        {
+            Console.WriteLine("--- fields ---");
+            for (int i=0; i<_fieldIdx_toWrite; ++i)
+            {
+                Console.WriteLine($"field[{i}]\t[{this[i].ToString()}]");
+            }
+            Console.WriteLine("--- buffer ---");
+            _buffer.PrintDebugInfo();
+        }
     }
 }

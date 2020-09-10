@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Spi
 {
@@ -11,6 +12,8 @@ namespace Spi
         int _bufLen;
         int _startIdx;
         int _readIdx;
+        int _shiftedDownCount;
+        long _copiedDownChars;
 
         public BufferEspecial(TextReader rdr, int buffersize = 4096)
         {
@@ -21,7 +24,8 @@ namespace Spi
             _startIdx = 0;
             _readIdx = 0;
         }
-        public bool Read(ref char c)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ReadNextIdx(ref char c)
         {
             int idxToRead = _startIdx + _readIdx;
             ++_readIdx;
@@ -34,18 +38,7 @@ namespace Spi
 
             if ( HandleReadBehindBuffer() )
             {
-                c = _buf[0];
-                return true;
-            }
-
-            return false;
-        }
-        public bool Peek(ref char c)
-        {
-            int idxToRead = _startIdx + _readIdx;
-
-            if (idxToRead < _bufLen)
-            {
+                idxToRead = _startIdx + _readIdx - 1;
                 c = _buf[idxToRead];
                 return true;
             }
@@ -71,7 +64,6 @@ namespace Spi
         {
             return _readIdx - 1;
         }
-
         private bool HandleReadBehindBuffer()
         {
             if ( _bufLen < BUFSIZE )
@@ -85,13 +77,12 @@ namespace Spi
             }
 
             int numberCharsRead = ShiftBufferAndRefill();
-            if (numberCharsRead == 0)
+                if (numberCharsRead == 0)
             {
                 return false;
             }
 
             _startIdx = 0;
-            _readIdx = 1;
 
             return true;
         }
@@ -109,6 +100,8 @@ namespace Spi
                     destinationArray:   _buf,
                     destinationIndex:   0,
                     length:             charsToMoveDown);
+                ++_shiftedDownCount;
+                _copiedDownChars += charsToMoveDown;
             }
             //
             // fill the rest of the array
@@ -120,5 +113,17 @@ namespace Spi
 
             return numberCharsRead;
         }
+        public void PrintDebugInfo()
+        {
+            Console.WriteLine(
+                  $"BUFSIZE\t\t{BUFSIZE}"
+                + $"\nbuflen\t\t{_bufLen}"
+                + $"\nstartIdx\t{_startIdx}"
+                + $"\nreadIdx\t\t{_readIdx}"
+                + $"\nshiftedDown\t{_shiftedDownCount}"
+                + $"\ncopiedDownChars\t{_copiedDownChars}"
+                + $"\nbuf\t\t[{_buf.AsSpan(_startIdx, _readIdx).ToString()}]");
+        }
+
     }
 }

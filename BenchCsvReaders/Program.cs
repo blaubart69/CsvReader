@@ -26,7 +26,7 @@ namespace BenchCsvReaders
             }
         }
         //[Benchmark]
-        public void Spi_Reader_V4_dir__4k()
+        public void Spi_Reader_V5_dir__4k()
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc.tsv", detectEncodingFromByteOrderMarks: true))
             {
@@ -37,7 +37,7 @@ namespace BenchCsvReaders
             }
         }
         [Benchmark]
-        public void Spi_Reader_V4_dir_32k()
+        public void Spi_Reader_V5_dir_32k()
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc.tsv", detectEncodingFromByteOrderMarks: true))
             {
@@ -115,7 +115,7 @@ namespace BenchCsvReaders
             }
         }
         [Benchmark]
-        public void Spi_Reader_V4_dir_quoted_32k()
+        public void Spi_Reader_V5_dir_quoted_32k()
         {
             using (TextReader rdr = new StreamReader(@"c:\temp\allc_quoted.csv", detectEncodingFromByteOrderMarks: true))
             {
